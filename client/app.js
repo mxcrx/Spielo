@@ -83,31 +83,34 @@ function startGame() {
     socket.emit("start_game", currentRoom);
 }
 
-function drawCard() {
+function sendGameAction(type, payload = {}) {
     if (!mySocketId || !currentPlayerId) return;
+
     if (mySocketId !== currentPlayerId) {
         showStatus("Du bist nicht am Zug!", "red");
         return;
     }
 
-    socket.emit("draw_card", currentRoom);
+    socket.emit("game_action", {
+        roomId: currentRoom,
+        action: {
+            type,
+            playerId: socket.id,
+            payload
+        }
+    });
+}
+
+function drawCard() {
+    sendGameAction("DRAW_CARD");
 }
 
 function endTurn() {
-    socket.emit("end_turn", currentRoom);
+    sendGameAction("END_TURN");
 }
 
 function playCard(cardIndex) {
-    if (!mySocketId || !currentPlayerId) return;
-    if (mySocketId !== currentPlayerId) {
-        showStatus("Du bist nicht am Zug!", "red");
-        return;
-    }
-
-    socket.emit("play_card", {
-        roomId: currentRoom,
-        cardIndex
-    });
+    sendGameAction("PLAY_CARD", { cardIndex });
 }
 
 function showStatus(msg, color = "red") {
@@ -213,10 +216,7 @@ function renderPlayers(game, currentPlayer) {
 function selectColor(color) {
     document.getElementById("colorPicker").style.display = "none";
 
-    socket.emit("choose_color", {
-        roomId: currentRoom,
-        color
-    });
+    sendGameAction("CHOOSE_COLOR", { color });
 }
 
 function showWinner(winner) {
