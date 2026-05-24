@@ -4,7 +4,8 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node server/index.js"
+    "start": "node server/index.js",
+    "export:zip": "powershell -NoProfile -Command \"Compress-Archive -Path 'client','server','package.json' -DestinationPath 'spielo-v1.zip' -Force\""
   },
   "keywords": [],
   "author": "",

@@ -2,15 +2,32 @@ const socketUrl = window.location.protocol === "file:"
     ? "http://localhost:3000"
     : window.location.origin;
 
-const socket = io(socketUrl);
+const savedUserId = localStorage.getItem("spielo_userId");
+
+const socket = io(socketUrl, {
+    auth: {
+        userId: savedUserId
+    }
+});
 
 let currentRoom = null;
-let mySocketId = null;
+let myUserId = null;
 let currentGame = null;
 let currentPlayerId = null;
 
 socket.on("connect", () => {
-    mySocketId = socket.id;
+    if (!myUserId) {
+        showStatus("Warte auf Sitzung...", "white");
+    }
+});
+
+socket.on("session_ready", (data) => {
+    myUserId = data.userId;
+    localStorage.setItem("spielo_userId", data.userId);
+
+    if (data.currentRoomId) {
+        currentRoom = data.currentRoomId;
+    }
 });
 
 socket.on("room_created", (data) => {
@@ -39,9 +56,9 @@ socket.on("game_started", (game) => {
     currentGame = game;
     hideWinner();
 
-    currentPlayerId = game.players[game.currentPlayerIndex]?.id || game.players[0].id;
+    currentPlayerId = game.players[game.currentPlayerIndex]?.userId || game.players[0].userId;
 
-    renderHand(game.hands[socket.id]);
+    renderHand(game.hands[myUserId] || []);
     renderTopCard(game.discardPile.at(-1));
     renderPlayers(game, currentPlayerId);
 });
@@ -51,7 +68,7 @@ socket.on("game_updated", (data) => {
 
     currentPlayerId = data.currentPlayer || currentPlayerId;
 
-    renderHand(currentGame.hands[socket.id]);
+    renderHand(currentGame.hands[myUserId] || []);
     renderTopCard(currentGame.discardPile.at(-1));
     renderPlayers(currentGame, currentPlayerId);
 });
@@ -84,9 +101,9 @@ function startGame() {
 }
 
 function sendGameAction(type, payload = {}) {
-    if (!mySocketId || !currentPlayerId) return;
+    if (!myUserId || !currentPlayerId) return;
 
-    if (mySocketId !== currentPlayerId) {
+    if (myUserId !== currentPlayerId) {
         showStatus("Du bist nicht am Zug!", "red");
         return;
     }
@@ -95,7 +112,7 @@ function sendGameAction(type, payload = {}) {
         roomId: currentRoom,
         action: {
             type,
-            playerId: socket.id,
+            playerId: myUserId,
             payload
         }
     });
@@ -203,9 +220,9 @@ function renderPlayers(game, currentPlayer) {
         const el = document.createElement("div");
 
         el.className = "player";
-        el.innerText = `${p.name} - ${game.hands[p.id]?.length || 0}`;
+        el.innerText = `${p.username} - ${game.hands[p.userId]?.length || 0}`;
 
-        if (p.id === currentPlayer) {
+        if (p.userId === currentPlayer) {
             el.classList.add("active");
         }
 

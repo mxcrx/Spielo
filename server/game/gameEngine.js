@@ -34,15 +34,15 @@ function resolveAfterDraw(game, playerId) {
 }
 
 function getWinnerName(game, playerId) {
-	const winner = game.players.find(player => player.id === playerId);
-	return winner?.name || "unknown";
+	const winner = game.players.find(player => player.userId === playerId);
+	return winner?.username || "unknown";
 }
 
 function handlePlayCard(game, action) {
 	const { playerId, payload = {} } = action;
 	const cardIndex = payload.cardIndex;
 
-	if (game.players[game.currentPlayerIndex]?.id !== playerId) {
+	if (game.players[game.currentPlayerIndex]?.userId !== playerId) {
 		return { game, error: "Not your turn" };
 	}
 
@@ -97,7 +97,7 @@ function handlePlayCard(game, action) {
 function handleDrawCard(game, action) {
 	const { playerId } = action;
 
-	if (game.players[game.currentPlayerIndex]?.id !== playerId) {
+	if (game.players[game.currentPlayerIndex]?.userId !== playerId) {
 		return { game, error: "Not your turn" };
 	}
 
@@ -127,7 +127,7 @@ function handleDrawCard(game, action) {
 function handleEndTurn(game, action) {
 	const { playerId } = action;
 
-	if (game.players[game.currentPlayerIndex]?.id !== playerId) {
+	if (game.players[game.currentPlayerIndex]?.userId !== playerId) {
 		return { game, error: "Not your turn" };
 	}
 
@@ -152,7 +152,7 @@ function handleChooseColor(game, action) {
 	const { playerId, payload = {} } = action;
 	const { color } = payload;
 
-	if (game.players[game.currentPlayerIndex]?.id !== playerId) {
+	if (game.players[game.currentPlayerIndex]?.userId !== playerId) {
 		return { game, error: "Not your turn" };
 	}
 

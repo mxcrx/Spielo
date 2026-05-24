@@ -1,22 +1,54 @@
 const {
     createRoom,
     joinRoom,
+    getRoomByUserId,
+    handleDisconnect,
     leaveRoom,
     getRoom,
     startRoomGame
 } = require("../game/roomManager");
 const { processAction } = require("../game/gameEngine");
+const { createGuestUser } = require("../auth/guestAuth.js");
 
 function registerSocket(io, socket) {
+    const existingUserId = socket.handshake.auth?.userId;
+    socket.user = createGuestUser(socket.id, existingUserId);
+
+    const activeRoom = getRoomByUserId(socket.user.userId);
+
+    if (activeRoom) {
+        socket.join(activeRoom.id);
+
+        joinRoom(activeRoom.id, socket.user);
+
+        socket.emit("session_ready", {
+            userId: socket.user.userId,
+            username: socket.user.username,
+            socketId: socket.id,
+            currentRoomId: activeRoom.id
+        });
+
+        if (activeRoom.game) {
+            socket.emit("game_started", activeRoom.game);
+        } else {
+            io.to(activeRoom.id).emit("room_updated", activeRoom);
+        }
+    } else {
+        socket.emit("session_ready", {
+            userId: socket.user.userId,
+            username: socket.user.username,
+            socketId: socket.id
+        });
+    }
 
     socket.on("create_room", () => {
-        const id = createRoom(socket.id);
+        const id = createRoom(socket.user);
         socket.join(id);
         socket.emit("room_created", { roomId: id });
     });
 
     socket.on("join_room", (id) => {
-        const res = joinRoom(id, socket.id);
+        const res = joinRoom(id, socket.user);
         if (!res.success) return socket.emit("error_message", res.message);
 
         socket.join(id);
@@ -52,7 +84,7 @@ function registerSocket(io, socket) {
                 game: room.game,
                 lastDraw: result.lastDraw,
                 lastPlayed: result.lastPlayed,
-                currentPlayer: result.currentPlayer || room.game.players[room.game.currentPlayerIndex].id
+                currentPlayer: result.currentPlayer || room.game.players[room.game.currentPlayerIndex].userId
             });
         }
 
@@ -64,16 +96,29 @@ function registerSocket(io, socket) {
     });
 
     socket.on("disconnect", () => {
-        const res = leaveRoom(socket.id);
+        const disconnectRes = handleDisconnect(socket.user.userId);
 
-        if (res.success && !res.roomDeleted) {
-            io.to(res.roomId).emit("room_updated", res.room);
+        if (disconnectRes.success) {
+            io.to(disconnectRes.roomId).emit("room_updated", disconnectRes.room);
 
-            if (res.gameAborted) {
-                io.to(res.roomId).emit("game_aborted", {
-                    message: `${res.leftPlayerName} hat das Spiel verlassen. Das Spiel wurde abgebrochen.`
-                });
-            }
+            setTimeout(() => {
+                const checkRoom = getRoom(disconnectRes.roomId);
+                const player = checkRoom?.players.find(p => p.userId === socket.user.userId);
+
+                if (player && !player.connected) {
+                    const res = leaveRoom(socket.user.userId);
+
+                    if (res.success && !res.roomDeleted) {
+                        io.to(res.roomId).emit("room_updated", res.room);
+
+                        if (res.gameAborted) {
+                            io.to(res.roomId).emit("game_aborted", {
+                                message: `${res.leftPlayerName} hat das Spiel verlassen. Das Spiel wurde abgebrochen.`
+                            });
+                        }
+                    }
+                }
+            }, 15000);
         }
     });
 }

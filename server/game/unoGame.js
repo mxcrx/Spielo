@@ -43,7 +43,7 @@ function createDeck() {
 
 function startGame(game) {
     for (const p of game.players) {
-        game.hands[p.id] = game.deck.splice(0, 5);
+        game.hands[p.userId] = game.deck.splice(0, 5);
     }
 
     game.discardPile.push(game.deck.pop());
@@ -51,21 +51,27 @@ function startGame(game) {
     return game;
 }
 
-function drawCard(game, playerId) {
+function getPlayerUserId(player) {
+    return typeof player === "string" ? player : player?.userId;
+}
+
+function drawCard(game, player) {
+    const userId = getPlayerUserId(player);
+
     if (game.deck.length === 0) {
         recycleDeck(game);
     }
 
     const card = game.deck.pop();
-    if (card) {
-        game.hands[playerId].push(card);
+    if (card && game.hands[userId]) {
+        game.hands[userId].push(card);
     }
     return card;
 }
 
-function drawMultipleCards(game, playerId, amount) {
+function drawMultipleCards(game, player, amount) {
     for (let i = 0; i < amount; i++) {
-        drawCard(game, playerId);
+        drawCard(game, player);
     }
 }
 
@@ -75,11 +81,11 @@ function nextTurn(game, steps = 1) {
     game.currentPlayerIndex =
         (game.currentPlayerIndex + steps * game.direction + n) % n;
 
-    return game.players[game.currentPlayerIndex].id;
+    return game.players[game.currentPlayerIndex].userId;
 }
 
 function getCurrentPlayer(game) {
-    return game.players[game.currentPlayerIndex].id;
+    return game.players[game.currentPlayerIndex].userId;
 }
 
 function canPlay(top, card, currentColor) {
@@ -96,8 +102,11 @@ function canPlay(top, card, currentColor) {
     return top.color === card.color || top.value === card.value;
 }
 
-function playCard(game, playerId, index, chosenColor) {
-    const hand = game.hands[playerId];
+function playCard(game, player, index, chosenColor) {
+    const userId = getPlayerUserId(player);
+    const hand = game.hands[userId];
+    if (!hand) return { success: false, message: "Spieler nicht im Spiel" };
+
     const card = hand[index];
 
     if (!card) return { success: false, message: "Karte existiert nicht" };
@@ -144,8 +153,9 @@ function isDrawStackCard(card) {
     return card.value === "+2";
 }
 
-function checkWinner(game, playerId) {
-    return game.hands[playerId].length === 0;
+function checkWinner(game, player) {
+    const userId = getPlayerUserId(player);
+    return game.hands[userId].length === 0;
 }
 
 function shuffleDeck(deck) {
