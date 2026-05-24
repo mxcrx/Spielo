@@ -44,7 +44,10 @@ function registerSocket(io, socket) {
     socket.on("create_room", () => {
         const id = createRoom(socket.user);
         socket.join(id);
-        socket.emit("room_created", { roomId: id });
+
+        const room = getRoom(id);
+
+        socket.emit("room_created", { roomId: id, room: room });
     });
 
     socket.on("join_room", (id) => {
@@ -92,14 +95,22 @@ function registerSocket(io, socket) {
             io.to(roomId).emit("game_over", {
                 winner: result.winner || "unknown"
             });
+
+            room.game = null;
+
+            setTimeout(() => {
+                io.to(roomId).emit("room_updated", room);
+            }, 4500);
         }
     });
 
     socket.on("disconnect", () => {
-        const disconnectRes = handleDisconnect(socket.user.userId);
+        const disconnectRes = handleDisconnect(socket.user.userId, socket.id);
 
         if (disconnectRes.success) {
-            io.to(disconnectRes.roomId).emit("room_updated", disconnectRes.room);
+            if (!disconnectRes.room.game) {
+                io.to(disconnectRes.roomId).emit("room_updated", disconnectRes.room);
+            }
 
             setTimeout(() => {
                 const checkRoom = getRoom(disconnectRes.roomId);

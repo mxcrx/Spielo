@@ -46,15 +46,17 @@ function getRoomByUserId(userId) {
     return null;
 }
 
-function handleDisconnect(userId) {
+function handleDisconnect(userId, socketId) {
     const room = getRoomByUserId(userId);
     if (!room) return { success: false };
 
     const player = room.players.find(p => p.userId === userId);
-    if (player) {
+    if (player && (!socketId || player.socketId === socketId)) {
         player.connected = false;
+        return { success: true, roomId: room.id, room };
     }
-    return { success: true, roomId: room.id, room };
+
+    return { success: false, staleDisconnect: true, roomId: room.id, room };
 }
 
 function leaveRoom(userId) {

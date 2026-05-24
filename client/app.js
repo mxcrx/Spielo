@@ -14,6 +14,22 @@ let currentRoom = null;
 let myUserId = null;
 let currentGame = null;
 let currentPlayerId = null;
+let statusResetTimer = null;
+
+function showScreen(screenId) {
+    const screens = ["lobbyScreen", "roomScreen", "gameScreen"];
+    screens.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            el.hidden = (id !== screenId);
+        }
+    });
+
+    const playersContainer = document.getElementById("playersContainer");
+    if (playersContainer) {
+        playersContainer.hidden = screenId === "lobbyScreen";
+    }
+}
 
 socket.on("connect", () => {
     if (!myUserId) {
@@ -27,54 +43,92 @@ socket.on("session_ready", (data) => {
 
     if (data.currentRoomId) {
         currentRoom = data.currentRoomId;
+    } else {
+        showScreen("lobbyScreen");
+        document.getElementById("status").innerText = "Bereit";
     }
 });
 
 socket.on("room_created", (data) => {
     currentRoom = data.roomId;
-    document.getElementById("status").innerText =
-        "Raum erstellt: " + currentRoom;
+    document.getElementById("roomCodeDisplay").innerText = currentRoom;
+    document.getElementById("status").innerText = "Raum erstellt: ";
+    showScreen("roomScreen");
+
+    toggleRoomHostUi(data.room);
+
+    if (data.room && data.room.players) {
+        renderPlayersList(data.room.players, null, {});
+    }
 });
 
 socket.on("room_updated", (room) => {
     currentRoom = room.id;
-    document.getElementById("status").innerText =
-        "Spieler im Raum: " + room.players.length;
+    document.getElementById("roomCodeDisplay").innerText = room.id;
+    document.getElementById("status").innerText = "Im Warteraum";
+    showScreen("roomScreen");
+
+    toggleRoomHostUi(room);
+
+    renderPlayersList(room.players, null, {});
 });
 
 socket.on("error_message", (msg) => {
     const status = document.getElementById("status");
+    const oldText = status.innerText;
     status.innerText = msg;
     status.style.color = "red";
 
-    setTimeout(() => {
-        status.style.color = "white";
+    if (statusResetTimer) {
+        clearTimeout(statusResetTimer);
+    }
+
+    statusResetTimer = setTimeout(() => {
+        status.style.removeProperty("color");
+        status.innerText = oldText;
     }, 1500);
 });
 
 socket.on("game_started", (game) => {
     currentGame = game;
     hideWinner();
+    showScreen("gameScreen");
+    document.getElementById("status").innerText = "Spiel läuft";
 
     currentPlayerId = game.players[game.currentPlayerIndex]?.userId || game.players[0].userId;
 
     renderHand(game.hands[myUserId] || []);
     renderTopCard(game.discardPile.at(-1));
-    renderPlayers(game, currentPlayerId);
+    renderPlayersList(game.players, currentPlayerId, game.hands);
 });
 
 socket.on("game_updated", (data) => {
     currentGame = data.game;
+    showScreen("gameScreen");
+    document.getElementById("status").innerText = "Spiel läuft";
 
     currentPlayerId = data.currentPlayer || currentPlayerId;
 
     renderHand(currentGame.hands[myUserId] || []);
     renderTopCard(currentGame.discardPile.at(-1));
-    renderPlayers(currentGame, currentPlayerId);
+    renderPlayersList(currentGame.players, currentPlayerId, currentGame.hands);
 });
 
 socket.on("game_over", (data) => {
     showWinner(data.winner);
+
+    document.getElementById("status").innerText = "Spiel beendet";
+    setTimeout(() => {
+        hideWinner();
+
+        showScreen("roomScreen");
+        document.getElementById("status").innerText = "Im Warteraum";
+
+        document.getElementById("hand").innerHTML = "";
+        document.getElementById("topCard").innerHTML = "";
+        currentGame = null;
+    }, 5000);
+
 });
 
 socket.on("choose_color", (data) => {
@@ -86,6 +140,13 @@ socket.on("choose_color", (data) => {
 
 socket.on("game_aborted", (data) => {
   showStatus(data.message, "orange");
+  setTimeout(() => {
+    currentGame = null;
+    currentRoom = null;
+    document.getElementById("players").innerHTML = "";
+    showScreen("lobbyScreen");
+    document.getElementById("status").innerText = "Bereit";
+    }, 3000);
 });
 
 function createRoom() {
@@ -93,7 +154,10 @@ function createRoom() {
 }
 
 function joinRoom() {
-    socket.emit("join_room", document.getElementById("roomInput").value);
+    const code = document.getElementById("roomInput").value.trim().toUpperCase();
+    if (code) {
+        socket.emit("join_room", code);
+    }
 }
 
 function startGame() {
@@ -134,10 +198,12 @@ function showStatus(msg, color = "red") {
     const status = document.getElementById("status");
     if (!status) return;
     status.innerText = msg;
-    const prev = status.style.color;
+    if (statusResetTimer) {
+        clearTimeout(statusResetTimer);
+    }
     status.style.color = color;
-    setTimeout(() => {
-        status.style.color = prev || "white";
+    statusResetTimer = setTimeout(() => {
+        status.style.removeProperty("color");
     }, 1500);
 }
 
@@ -160,6 +226,7 @@ function renderHand(hand) {
 }
 
 function renderTopCard(card) {
+    if (!card) return;
     const color = currentGame.currentColor || card.color;
     const extraClass = (card.value === "+4" || card.value === "wild") ? "wild" : "";
     const requiredColorClass = color && (card.value === "+4" || card.value === "wild") ? "required-color" : "";
@@ -212,15 +279,20 @@ function getCardMarkup(card) {
     return `<span class="card-value">${card.value}</span>`;
 }
 
-function renderPlayers(game, currentPlayer) {
+function renderPlayersList(players, currentPlayer, hands = {}) {
     const div = document.getElementById("players");
     div.innerHTML = "";
 
-    game.players.forEach(p => {
+    players.forEach(p => {
         const el = document.createElement("div");
-
         el.className = "player";
-        el.innerText = `${p.username} - ${game.hands[p.userId]?.length || 0}`;
+        
+        const hasHandInfo = hands && hands[p.userId];
+        if (hasHandInfo) {
+            el.innerText = `${p.username} - ${hands[p.userId].length} Karten`;
+        } else { 
+            el.innerText = p.username;
+        }
 
         if (p.userId === currentPlayer) {
             el.classList.add("active");
@@ -252,4 +324,13 @@ function hideWinner() {
     banner.hidden = true;
     banner.textContent = "";
     banner.classList.remove("visible");
+}
+
+function toggleRoomHostUi(room) {
+    const isHost = room?.host === myUserId;
+    const startButton = document.getElementById("startGameButton");
+    const startHint = document.getElementById("roomStartHint");
+
+    if (startButton) startButton.hidden = !isHost;
+    if (startHint) startHint.hidden = !isHost;
 }

@@ -3,62 +3,70 @@
 <head>
     <meta charset="UTF-8">
     <title>Spielo</title>
-
     <link rel="stylesheet" href="style.css">
 </head>
-
 <body>
 
     <h1>Spielo UNO</h1>
 
     <div id="winnerBanner" class="winner-banner" hidden></div>
+    
+    <h2 id="status">Verbinde zum Server...</h2>
 
-    <div id="menu">
-        <button onclick="createRoom()">
-            Raum erstellen
-        </button>
-
-        <input
-            id="roomInput"
-            placeholder="Raum Code"
-        >
-
-        <button onclick="joinRoom()">
-            Beitreten
-        </button>
-
-        <button onclick="startGame()">
-            Spiel starten
-        </button>
-
-        <button onclick="drawCard()">
-            Karte ziehen
-        </button>
-        <button onclick="endTurn()">
-            Zug beenden
-        </button>
+    <div id="lobbyScreen" class="screen" hidden>
+        <div id="menu">
+            <button onclick="createRoom()">
+                Raum erstellen
+            </button>
+            <div style="margin: 10px 0; text-align: center; opacity: 0.5;">oder</div>
+            <input
+                id="roomInput"
+                placeholder="Raum Code"
+            >
+            <button onclick="joinRoom()">
+                Beitreten
+            </button>
+        </div>
     </div>
 
-    <div id="colorPicker" class="color-picker">
-        <button onclick="selectColor('red')" class="color-btn red"></button>
-        <button onclick="selectColor('blue')" class="color-btn blue"></button>
-        <button onclick="selectColor('green')" class="color-btn green"></button>
-        <button onclick="selectColor('yellow')" class="color-btn yellow"></button>
+    <div id="roomScreen" class="screen" hidden>
+        <div id="menu">
+            <h3>Raum-Code: <span id="roomCodeDisplay" style="color: #2ecc71; font-family: monospace;">-</span></h3>
+            <p style="opacity: 0.7;">Warte auf Mitspieler. <span id="roomStartHint" hidden>Wenn alle bereit sind, starte das Spiel:</span></p>
+            <button id="startGameButton" onclick="startGame()">
+                Spiel starten
+            </button>
+        </div>
     </div>
-    <hr>
 
-    <h2 id="status">
-        Nicht verbunden
-    </h2>
+    <div id="gameScreen" class="screen" hidden>
+        <div id="menu">
+            <button onclick="drawCard()">
+                Karte ziehen
+            </button>
+            <button onclick="endTurn()">
+                Zug beenden
+            </button>
+        </div>
 
-    <h3>Oberste Karte</h3>
-    <div id="topCard"></div>
+        <div id="colorPicker" class="color-picker">
+            <button onclick="selectColor('red')" class="color-btn red"></button>
+            <button onclick="selectColor('blue')" class="color-btn blue"></button>
+            <button onclick="selectColor('green')" class="color-btn green"></button>
+            <button onclick="selectColor('yellow')" class="color-btn yellow"></button>
+        </div>
 
-    <h3>Spieler</h3>
-    <div id="players"></div>
+        <h3>Oberste Karte</h3>
+        <div id="topCard"></div>
 
-    <h3>Meine Hand</h3>
-    <div id="hand"></div>
+        <h3>Meine Hand</h3>
+        <div id="hand"></div>
+    </div>
+
+    <div id="playersContainer" class="players-container" hidden>
+        <h3>Spieler im Raum</h3>
+        <div id="players"></div>
+    </div>
 
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
     <script src="app.js"></script>

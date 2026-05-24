@@ -1,3 +1,9 @@
+html, body {
+    margin: 0;
+    height: 100%;
+    overflow: hidden;
+}
+
 body {
     font-family: Arial;
     background:
@@ -6,6 +12,9 @@ body {
         linear-gradient(180deg, #121212 0%, #1e1e1e 100%);
     color: white;
     padding: 24px;
+    min-height: 100vh;
+    background-attachment: fixed;
+    background-repeat: no-repeat;
 }
 
 h1, h2, h3 {
@@ -331,4 +340,20 @@ h1, h2, h3 {
         transform: translateY(0);
         opacity: 1;
     }
+}
+
+.screen[hidden] {
+    display: none !important;
+}
+
+.screen {
+    width: 100%;
+}
+
+.players-container {
+    margin-top: 24px;
+    padding: 16px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.05);
 }
