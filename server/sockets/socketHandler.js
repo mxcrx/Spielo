@@ -58,6 +58,24 @@ function registerSocket(io, socket) {
         io.to(id).emit("room_updated", res.room);
     });
 
+    socket.on("leave_room", (roomId) => {
+        const res = leaveRoom(socket.user.userId);
+
+        if (!res.success) return;
+
+        socket.leave(roomId);
+
+        if (!res.roomDeleted) {
+            io.to(res.roomId).emit("room_updated", res.room);
+
+            if (res.gameAborted) {
+                io.to(res.roomId).emit("game_aborted", {
+                    message: `${res.leftPlayerName} hat den Raum verlassen. Das Spiel wurde abgebrochen.`
+                });
+            }
+        }
+    });
+
     socket.on("start_game", (roomId) => {
         const game = startRoomGame(roomId);
         io.to(roomId).emit("game_started", game);
@@ -108,7 +126,7 @@ function registerSocket(io, socket) {
         const disconnectRes = handleDisconnect(socket.user.userId, socket.id);
 
         if (disconnectRes.success) {
-            if (!disconnectRes.room.game) {
+            if (!disconnectRes.roomDeleted && !disconnectRes.room.game) {
                 io.to(disconnectRes.roomId).emit("room_updated", disconnectRes.room);
             }
 

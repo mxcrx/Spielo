@@ -100,6 +100,8 @@ socket.on("game_started", (game) => {
     renderHand(game.hands[myUserId] || []);
     renderTopCard(game.discardPile.at(-1));
     renderPlayersList(game.players, currentPlayerId, game.hands);
+    updateTurnIndicator(currentPlayerId);
+    updateUnoButtons();
 });
 
 socket.on("game_updated", (data) => {
@@ -112,6 +114,8 @@ socket.on("game_updated", (data) => {
     renderHand(currentGame.hands[myUserId] || []);
     renderTopCard(currentGame.discardPile.at(-1));
     renderPlayersList(currentGame.players, currentPlayerId, currentGame.hands);
+    updateTurnIndicator(currentPlayerId);
+    updateUnoButtons();
 });
 
 socket.on("game_over", (data) => {
@@ -164,10 +168,12 @@ function startGame() {
     socket.emit("start_game", currentRoom);
 }
 
-function sendGameAction(type, payload = {}) {
+function sendGameAction(type, payload = {}, options = {}) {
+    const { allowWhenNotCurrent = false } = options;
+
     if (!myUserId || !currentPlayerId) return;
 
-    if (myUserId !== currentPlayerId) {
+    if (!allowWhenNotCurrent && myUserId !== currentPlayerId) {
         showStatus("Du bist nicht am Zug!", "red");
         return;
     }
@@ -289,7 +295,11 @@ function renderPlayersList(players, currentPlayer, hands = {}) {
         
         const hasHandInfo = hands && hands[p.userId];
         if (hasHandInfo) {
-            el.innerText = `${p.username} - ${hands[p.userId].length} Karten`;
+            let playerText = `${p.username} - ${hands[p.userId].length} Karten`;
+            if (currentGame && currentGame.unoDeclared && currentGame.unoDeclared[p.userId]) {
+                playerText += " - UNO!";
+            }
+            el.innerText = playerText;
         } else { 
             el.innerText = p.username;
         }
@@ -333,4 +343,65 @@ function toggleRoomHostUi(room) {
 
     if (startButton) startButton.hidden = !isHost;
     if (startHint) startHint.hidden = !isHost;
+}
+
+function updateTurnIndicator(currentPlayerId) {
+    const indicator = document.getElementById("turnIndicator");
+    if (!indicator || !currentGame) return;
+
+    if (currentPlayerId === myUserId) {
+        indicator.textContent = "Du bist am Zug!";
+        indicator.className = "turn-indicator my-turn";
+    } else {
+        const player = currentGame.players.find(p => p.userId === currentPlayerId);
+        indicator.textContent = `${player ? player.username : 'Ein Anderer Spieler'} ist am Zug...`;
+        indicator.className = "turn-indicator other-turn";
+    }
+}
+
+function callUno() {
+    sendGameAction("CALL_UNO");
+}
+
+function challengeUno() {
+    sendGameAction("CHALLENGE_UNO", {}, { allowWhenNotCurrent: true });
+}
+
+function updateUnoButtons() {
+    const unoButton = document.getElementById("unoButton");
+    const challengeUnoButton = document.getElementById("challengeUnoButton");
+    if (!unoButton || !challengeUnoButton || !currentGame) return;
+
+    const myHand = currentGame.hands[myUserId] || [];
+    const unoDeclared = currentGame.unoDeclared || {};
+
+    if (myHand.length > 0 && myHand.length <= 2 && !unoDeclared[myUserId]) {
+        unoButton.style.display = "inline-block";
+    } else {
+        unoButton.style.display = "none";
+    }
+
+    let showChallenge = false;
+    currentGame.players.forEach(p => {
+        if (p.userId !== myUserId) {
+            const otherHand = currentGame.hands[p.userId] || [];
+            if (otherHand.length === 1 && !unoDeclared[p.userId]) {
+                showChallenge = true;
+            }
+        }
+    });
+
+    if (showChallenge) {
+        challengeUnoButton.style.display = "inline-block";
+    } else {
+        challengeUnoButton.style.display = "none";
+    }
+}
+
+function leaveRoom() {
+    socket.emit("leave_room", currentRoom);
+    currentRoom = null;
+    currentGame = null;
+    showScreen("lobbyScreen");
+    document.getElementById("status").innerText = "Bereit";
 }

@@ -15,7 +15,7 @@
 
     <div id="lobbyScreen" class="screen" hidden>
         <div id="menu">
-            <button onclick="createRoom()">
+            <button class="greenButton" onclick="createRoom()">
                 Raum erstellen
             </button>
             <div style="margin: 10px 0; text-align: center; opacity: 0.5;">oder</div>
@@ -23,7 +23,7 @@
                 id="roomInput"
                 placeholder="Raum Code"
             >
-            <button onclick="joinRoom()">
+            <button class="blueButton" onclick="joinRoom()">
                 Beitreten
             </button>
         </div>
@@ -33,20 +33,34 @@
         <div id="menu">
             <h3>Raum-Code: <span id="roomCodeDisplay" style="color: #2ecc71; font-family: monospace;">-</span></h3>
             <p style="opacity: 0.7;">Warte auf Mitspieler. <span id="roomStartHint" hidden>Wenn alle bereit sind, starte das Spiel:</span></p>
-            <button id="startGameButton" onclick="startGame()">
+            <button class="greenButton"id="startGameButton" onclick="startGame()">
                 Spiel starten
+            </button>
+            <button class="redButton" onclick="leaveRoom()">
+                Raum verlassen
             </button>
         </div>
     </div>
 
     <div id="gameScreen" class="screen" hidden>
         <div id="menu">
-            <button onclick="drawCard()">
+            <button class="orangeButton" onclick="drawCard()">
                 Karte ziehen
             </button>
-            <button onclick="endTurn()">
+            <button class="redButton" onclick="endTurn()">
                 Zug beenden
             </button>
+
+            <button id="unoButton" class="yellowButton" onClick="callUno()"style="display: none;">
+                UNO!
+            </button>
+            <button id="challengeUnoButton" class="yellowButton" onClick="challengeUno()" style="display: none;">
+                UNO melden!
+            </button>
+        </div>
+
+        <div id="turnIndicator" class="turn-indicator">
+            Warte auf Spielstart...
         </div>
 
         <div id="colorPicker" class="color-picker">

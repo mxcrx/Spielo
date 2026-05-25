@@ -56,6 +56,10 @@ function handlePlayCard(game, action) {
 		return { game, error: result.message };
 	}
 
+	if ((game.hands[playerId] || []).length !== 1) {
+		game.unoDeclared[playerId] = false;
+	}
+
 	const card = result.playedCard;
 	const needsColorChoice = card.value === "wild" || card.value === "+4";
 
@@ -112,6 +116,10 @@ function handleDrawCard(game, action) {
 		game.pendingDraw = 0;
 	} else {
 		drawnCard = drawCard(game, playerId);
+	}
+
+	if ((game.hands[playerId] || []).length !== 1) {
+		game.unoDeclared[playerId] = false;
 	}
 
 	const currentPlayer = resolveAfterDraw(game, playerId);
@@ -201,6 +209,39 @@ function handleChooseColor(game, action) {
 	};
 }
 
+function handleCallUno(game, action) {
+	const hand = game.hands[action.playerId] || [];
+
+	if (hand.length <= 2 && hand.length > 0) {
+		game.unoDeclared[action.playerId] = true;
+		return { game, gameUpdated: true };
+	}
+	return { game, error: "Du kannst jetzt kein UNO rufen!" };
+}
+
+function handleChallengeUno(game, action) {
+	let violatorId = null;
+
+	for (const p of game.players) {
+		const hand = game.hands[p.userId] || [];
+		if (hand.length === 1 && !game.unoDeclared[p.userId]) {
+			violatorId = p.userId;
+			break;
+		}
+	}
+
+	if (violatorId) {
+		drawMultipleCards(game, violatorId, 2);
+		game.unoDeclared[violatorId] = false;
+		return {
+			game,
+			gameUpdated: true,
+			challengedPlayer: violatorId,
+		};
+	}
+	return { game, error: "Niemand hat vergessen, UNO zu rufen!" };
+}
+
 function processAction(game, action = {}) {
 	switch (action.type) {
 		case "PLAY_CARD":
@@ -214,6 +255,12 @@ function processAction(game, action = {}) {
 
 		case "CHOOSE_COLOR":
 			return handleChooseColor(game, action);
+
+		case "CHALLENGE_UNO":
+			return handleChallengeUno(game, action);
+
+		case "CALL_UNO":
+			return handleCallUno(game, action);
 
 		default:
 			return { game, error: "Unknown action" };

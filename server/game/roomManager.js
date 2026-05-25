@@ -53,6 +53,13 @@ function handleDisconnect(userId, socketId) {
     const player = room.players.find(p => p.userId === userId);
     if (player && (!socketId || player.socketId === socketId)) {
         player.connected = false;
+
+        const connectedPlayers = room.players.filter(p => p.connected);
+        if (connectedPlayers.length === 0) {
+            delete rooms[room.id];
+            return { success: true, roomId: room.id, room, roomDeleted: true };
+        }
+
         return { success: true, roomId: room.id, room };
     }
 

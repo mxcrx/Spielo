@@ -2,6 +2,7 @@ function createUnoGame(players) {
     return {
         players,
         hands: {},
+        unoDeclared: {},
         deck: createDeck(),
         discardPile: [],
         currentPlayerIndex: 0,
@@ -46,9 +47,23 @@ function startGame(game) {
         game.hands[p.userId] = game.deck.splice(0, 5);
     }
 
-    game.discardPile.push(game.deck.pop());
+    const firstCard = game.deck.pop();
+
+    if (firstCard && (firstCard.value === "wild" || firstCard.value === "+4")) {
+        firstCard.color = getRandomColor();
+        game.currentColor = firstCard.color;
+    } else {
+        game.currentColor = firstCard?.color || null;
+    }
+
+    game.discardPile.push(firstCard);
 
     return game;
+}
+
+function getRandomColor() {
+    const colors = ["red", "green", "blue", "yellow"];
+    return colors[Math.floor(Math.random() * colors.length)];
 }
 
 function getPlayerUserId(player) {
