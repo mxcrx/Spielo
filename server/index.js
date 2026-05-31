@@ -6,10 +6,7 @@ const path = require("path");
 
 const config = require("./config");
 const { registerSocket } = require("./sockets/socketHandler");
-const {
-  createHttpRateLimiter,
-  createSocketAuthLimiter,
-} = require("./utils/rateLimit");
+const { createHttpRateLimiter } = require("./utils/rateLimit");
 
 const app = express();
 app.use(
@@ -18,6 +15,8 @@ app.use(
   }),
 );
 app.use(createHttpRateLimiter({ limit: config.httpRateLimit }));
+app.use(express.json({ limit: "16kb" }));
+app.use(express.urlencoded({ extended: false, limit: "16kb" }));
 app.use(express.static(path.join(__dirname, "..", "client")));
 
 app.get("/", (req, res) => {
@@ -31,26 +30,6 @@ function startServer(port) {
     cors: {
       origin: config.corsOrigin,
     },
-  });
-
-  const checkSocketAuth = createSocketAuthLimiter({
-    limit: config.socketAuthLimit,
-  });
-
-  io.use((socket, next) => {
-    const result = checkSocketAuth(socket);
-
-    if (!result.allowed) {
-      const error = new Error(
-        "Too many authentication attempts. Please try again in 15 minutes.",
-      );
-      error.data = {
-        retryAfterMs: result.retryAfterMs,
-      };
-      return next(error);
-    }
-
-    return next();
   });
 
   io.on("connection", (socket) => {

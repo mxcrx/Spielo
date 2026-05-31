@@ -45,6 +45,41 @@ function joinRoom(roomId, user) {
   return { success: true, room };
 }
 
+function updatePlayerIdentity(oldUserId, nextUser) {
+  if (!oldUserId || !nextUser?.userId || oldUserId === nextUser.userId) {
+    return { success: false };
+  }
+
+  const room = getRoomByUserId(oldUserId);
+  if (!room) return { success: false };
+
+  const player = room.players.find((p) => p.userId === oldUserId);
+  if (!player) return { success: false };
+
+  if (room.host === oldUserId) {
+    room.host = nextUser.userId;
+  }
+
+  if (room.game) {
+    if (room.game.hands[oldUserId]) {
+      room.game.hands[nextUser.userId] = room.game.hands[oldUserId];
+      delete room.game.hands[oldUserId];
+    }
+
+    if (room.game.unoDeclared[oldUserId] !== undefined) {
+      room.game.unoDeclared[nextUser.userId] = room.game.unoDeclared[oldUserId];
+      delete room.game.unoDeclared[oldUserId];
+    }
+  }
+
+  player.userId = nextUser.userId;
+  player.socketId = nextUser.socketId;
+  player.username = nextUser.username || player.username;
+  player.connected = true;
+
+  return { success: true, room };
+}
+
 function getRoomByUserId(userId) {
   for (const roomId in rooms) {
     const room = rooms[roomId];
@@ -137,6 +172,7 @@ function startRoomGame(roomId) {
 module.exports = {
   createRoom,
   joinRoom,
+  updatePlayerIdentity,
   getRoomByUserId,
   handleDisconnect,
   leaveRoom,

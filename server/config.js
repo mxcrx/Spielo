@@ -10,13 +10,29 @@ function toPositiveInteger(value, fallback) {
   return fallback;
 }
 
+function requireEnv(name) {
+  const value = process.env[name];
+
+  if (typeof value !== "string" || value.trim() === "") {
+    throw new Error(`Missing required environment variable: ${name}`);
+  }
+
+  return value.trim();
+}
+
 module.exports = {
   port: toPositiveInteger(process.env.PORT, 3000),
   corsOrigin: process.env.CORS_ORIGIN || "*",
   httpRateLimit: toPositiveInteger(process.env.HTTP_RATE_LIMIT_LIMIT, 100),
-  socketAuthLimit: toPositiveInteger(process.env.SOCKET_AUTH_LIMIT, 15),
+  socketAuthLimit: toPositiveInteger(process.env.SOCKET_AUTH_LIMIT, 5),
   socketMaxBufferSize: toPositiveInteger(
     process.env.SOCKET_MAX_BUFFER_SIZE,
     8192,
   ),
+  dbHost: process.env.DB_HOST || "localhost",
+  dbPort: toPositiveInteger(process.env.DB_PORT, 3306),
+  dbUser: requireEnv("DB_USER"),
+  dbPassword: requireEnv("DB_PASSWORD"),
+  dbName: requireEnv("DB_NAME"),
+  jwtSecret: requireEnv("JWT_SECRET"),
 };

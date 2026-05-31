@@ -14,7 +14,7 @@ function createHttpRateLimiter({ limit = 100 } = {}) {
   });
 }
 
-function createSocketAuthLimiter({ limit = 15 } = {}) {
+function createSocketAuthLimiter({ limit = 5 } = {}) {
   const attempts = new Map();
 
   return function socketAuthLimiter(socket) {

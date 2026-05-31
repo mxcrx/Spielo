@@ -1,5 +1,6 @@
 const ROOM_CODE_PATTERN = /^[A-Z0-9]{6}$/;
 const GUEST_USER_ID_PATTERN = /^guest_[a-z0-9]{10}$/;
+const AUTH_USERNAME_PATTERN = /^[\p{L}\p{N}._-]{3,32}$/u;
 const GAME_COLORS = new Set(["red", "green", "blue", "yellow"]);
 const GAME_ACTION_TYPES = new Set([
   "PLAY_CARD",
@@ -51,6 +52,68 @@ function normalizeGuestUserId(userId) {
   return GUEST_USER_ID_PATTERN.test(normalized) ? normalized : null;
 }
 
+function normalizeAuthUsername(username) {
+  if (typeof username !== "string") {
+    return null;
+  }
+
+  const normalized = username.trim();
+
+  return AUTH_USERNAME_PATTERN.test(normalized) ? normalized : null;
+}
+
+function normalizeAuthPassword(password) {
+  if (typeof password !== "string") {
+    return null;
+  }
+
+  if (password.length < 6 || password.length > 128) {
+    return null;
+  }
+
+  return password;
+}
+
+function normalizeAuthToken(token) {
+  if (typeof token !== "string") {
+    return null;
+  }
+
+  const normalized = token.trim();
+
+  return normalized.length > 0 && normalized.length <= 4096 ? normalized : null;
+}
+
+function normalizeAuthCredentials(credentials, { maxBytes = 2048 } = {}) {
+  if (
+    !isPlainObject(credentials) ||
+    !isPayloadWithinLimit(credentials, maxBytes)
+  ) {
+    return null;
+  }
+
+  const username = normalizeAuthUsername(credentials.username);
+  const password = normalizeAuthPassword(credentials.password);
+
+  if (!username || !password) {
+    return null;
+  }
+
+  return { username, password };
+}
+
+function parseStrictInteger(value) {
+  if (Number.isInteger(value)) {
+    return value;
+  }
+
+  if (typeof value === "string" && /^[0-9]+$/.test(value.trim())) {
+    return Number.parseInt(value, 10);
+  }
+
+  return null;
+}
+
 function isAllowedGameActionType(type) {
   return typeof type === "string" && GAME_ACTION_TYPES.has(type);
 }
@@ -91,9 +154,9 @@ function normalizeGameAction(action, { maxBytes = 2048 } = {}) {
       return null;
     }
 
-    const cardIndex = Number.parseInt(normalized.payload.cardIndex, 10);
+    const cardIndex = parseStrictInteger(normalized.payload.cardIndex);
 
-    if (!Number.isInteger(cardIndex) || cardIndex < 0) {
+    if (cardIndex === null || cardIndex < 0) {
       return null;
     }
 
@@ -131,6 +194,10 @@ module.exports = {
   GAME_COLORS,
   GAME_ACTION_TYPES,
   estimatePayloadSize,
+  normalizeAuthCredentials,
+  normalizeAuthPassword,
+  normalizeAuthToken,
+  normalizeAuthUsername,
   isAllowedColor,
   isAllowedGameActionType,
   isPayloadWithinLimit,

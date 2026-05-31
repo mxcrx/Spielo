@@ -5,17 +5,21 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node server/index.js",
-    "export:zip": "powershell -NoProfile -Command \"$temp = Join-Path $env:TEMP 'spielo-v1-export'; if (Test-Path $temp) { Remove-Item $temp -Recurse -Force }; New-Item -ItemType Directory -Path $temp | Out-Null; Copy-Item 'client','server','package.json' -Destination $temp -Recurse; Remove-Item (Join-Path $temp 'server/utils') -Recurse -Force; Compress-Archive -Path (Join-Path $temp '*') -DestinationPath 'spielo-v1.zip' -Force; Remove-Item $temp -Recurse -Force\""
+    "export:zip": "powershell -NoProfile -Command \"$temp = Join-Path $env:TEMP 'spielo-v1-export'; if (Test-Path $temp) { Remove-Item $temp -Recurse -Force }; New-Item -ItemType Directory -Path $temp | Out-Null; Copy-Item 'client','server','package.json' -Destination $temp -Recurse; Remove-Item (Join-Path $temp 'server/utils') -Recurse -Force; Compress-Archive -Path (Join-Path $temp '*') -DestinationPath 'spielo-v1.zip' -Force; Remove-Item $temp -Recurse -Force\"",
+    "export:txt": "node scripts/export-txt.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "bcrypt": "^6.0.0",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "express-rate-limit": "^8.5.2",
+    "jsonwebtoken": "^9.0.3",
+    "mysql2": "^3.22.4",
     "socket.io": "^4.5.4"
   }
 }

@@ -6,21 +6,67 @@ const {
   leaveRoom,
   getRoom,
   startRoomGame,
+  updatePlayerIdentity,
 } = require("../game/roomManager");
 const { processAction } = require("../game/gameEngine");
 const { createGuestUser } = require("../auth/guestAuth.js");
+const config = require("../config");
 const {
   isAllowedColor,
   isAllowedGameActionType,
+  normalizeAuthUsername,
+  normalizeAuthCredentials,
+  normalizeAuthToken,
   normalizeGameAction,
   normalizeRoomCode,
   isPlainObject,
 } = require("../utils/inputValidation");
+const { createToken, verifyToken } = require("../auth/jwtService");
+const { login, createUser } = require("../auth/userService");
+const { createSocketAuthLimiter } = require("../utils/rateLimit");
 
 const MAX_EVENT_PAYLOAD_BYTES = 2048;
+const checkAuthAttempt = createSocketAuthLimiter({
+  limit: config.socketAuthLimit,
+});
 
 function emitInvalidInput(socket, message) {
   socket.emit("error_message", message);
+}
+
+function emitAuthRateLimit(socket) {
+  socket.emit(
+    "error_message",
+    "Zu viele Anmeldeversuche. Bitte in 15 Minuten erneut versuchen.",
+  );
+}
+
+function restoreRoomState(io, socket) {
+  const activeRoom = getRoomByUserId(socket.user.userId);
+
+  if (!activeRoom) {
+    return;
+  }
+
+  socket.join(activeRoom.id);
+  joinRoom(activeRoom.id, socket.user);
+
+  if (activeRoom.game) {
+    socket.emit("game_started", activeRoom.game);
+  } else {
+    io.to(activeRoom.id).emit("room_updated", activeRoom);
+  }
+}
+
+function consumeAuthAttempt(socket) {
+  const result = checkAuthAttempt(socket);
+
+  if (!result.allowed) {
+    emitAuthRateLimit(socket);
+    return false;
+  }
+
+  return true;
 }
 
 function registerSocket(io, socket) {
@@ -53,6 +99,145 @@ function registerSocket(io, socket) {
       socketId: socket.id,
     });
   }
+  socket.on("auth_with_token", (token) => {
+    if (!consumeAuthAttempt(socket)) {
+      return;
+    }
+
+    const normalizedToken = normalizeAuthToken(token);
+
+    if (!normalizedToken) {
+      return emitInvalidInput(socket, "Ungültige Sitzung");
+    }
+
+    const decoded = verifyToken(normalizedToken);
+    if (decoded) {
+      socket.user = {
+        userId: decoded.userId,
+        username: decoded.username,
+        role: decoded.role,
+      };
+
+      socket.emit("auth_success", socket.user);
+      restoreRoomState(io, socket);
+    } else {
+      socket.emit("auth_failed", "Sitzung abgelaufen. Bitte neu anmelden.");
+    }
+  });
+
+  // Allow client to set a display name for guest accounts
+  socket.on("set_guest_name", (name) => {
+    try {
+      if (typeof name !== "string" || name.trim().length === 0) {
+        // No name provided -> acknowledge current guest info
+        return socket.emit("guest_name_set", {
+          userId: socket.user.userId,
+          username: socket.user.username,
+        });
+      }
+
+      const normalized = normalizeAuthUsername(name);
+      if (!normalized) {
+        return emitInvalidInput(socket, "Ungültiger Benutzername für Gast");
+      }
+
+      socket.user.username = normalized;
+
+      socket.emit("guest_name_set", {
+        userId: socket.user.userId,
+        username: socket.user.username,
+      });
+    } catch (err) {
+      socket.emit("error_message", "Serverfehler beim Setzen des Gastnamens");
+    }
+  });
+
+  socket.on("login", async (credentials) => {
+    if (!consumeAuthAttempt(socket)) {
+      return;
+    }
+
+    try {
+      const previousUserId = socket.user.userId;
+      const normalizedCredentials = normalizeAuthCredentials(credentials, {
+        maxBytes: MAX_EVENT_PAYLOAD_BYTES,
+      });
+
+      if (!normalizedCredentials)
+        return socket.emit("error_message", "Bitte alle Felder ausfüllen.");
+
+      const user = await login(
+        normalizedCredentials.username,
+        normalizedCredentials.password,
+      );
+      if (user) {
+        const token = createToken(user);
+        socket.user = {
+          userId: user.id.toString(),
+          username: user.username,
+          role: user.role,
+        };
+
+        updatePlayerIdentity(previousUserId, {
+          ...socket.user,
+          socketId: socket.id,
+        });
+
+        socket.emit("login_success", { user: socket.user, token });
+
+        restoreRoomState(io, socket);
+      } else {
+        socket.emit("error_message", "Falscher Benutzername oder Passwort.");
+      }
+    } catch (error) {
+      socket.emit(
+        "error_message",
+        "Ein serverseitiger Fehler ist aufgetreten.",
+      );
+    }
+  });
+
+  socket.on("register", async (credentials) => {
+    if (!consumeAuthAttempt(socket)) {
+      return;
+    }
+
+    try {
+      const previousUserId = socket.user.userId;
+      const normalizedCredentials = normalizeAuthCredentials(credentials, {
+        maxBytes: MAX_EVENT_PAYLOAD_BYTES,
+      });
+
+      if (!normalizedCredentials)
+        return socket.emit("error_message", "Bitte alle Felder ausfüllen.");
+
+      const newUser = await createUser(
+        normalizedCredentials.username,
+        normalizedCredentials.password,
+      );
+      const token = createToken(newUser);
+
+      socket.user = {
+        userId: newUser.id.toString(),
+        username: newUser.username,
+        role: newUser.role,
+      };
+
+      updatePlayerIdentity(previousUserId, {
+        ...socket.user,
+        socketId: socket.id,
+      });
+
+      socket.emit("login_success", { user: socket.user, token });
+
+      restoreRoomState(io, socket);
+    } catch (error) {
+      socket.emit(
+        "error_message",
+        error.message || "Fehler bei der Registrierung.",
+      );
+    }
+  });
 
   socket.on("create_room", () => {
     if (socket.user.userId.length > 64) {

@@ -12,6 +12,29 @@
 
     <h2 id="status">Verbinde zum Server...</h2>
 
+    <div id="loginScreen" class="screen">
+      <div id="menu" class="login-menu">
+        <h3 style="margin-top: 0">Anmelden</h3>
+        <input id="usernameInput" type="text" placeholder="Benutzername" />
+        <input id="passwordInput" type="password" placeholder="Passwort" />
+        <button class="blueButton" onclick="submitLogin()">Anmelden</button>
+        <button class="greenButton" onclick="submitRegister()">
+          Registrieren
+        </button>
+
+        <div style="margin: 10px 0; text-align: center; opacity: 0.5">oder</div>
+
+        <input
+          id="guestNameInput"
+          type="text"
+          placeholder="Name als Gast (optional)"
+        />
+        <button class="orangeButton" onclick="continueAsGuest()">
+          Als Gast spielen
+        </button>
+      </div>
+    </div>
+
     <div id="lobbyScreen" class="screen" hidden>
       <div id="menu">
         <button class="greenButton" onclick="createRoom()">
@@ -20,6 +43,8 @@
         <div style="margin: 10px 0; text-align: center; opacity: 0.5">oder</div>
         <input id="roomInput" placeholder="Raum Code" />
         <button class="blueButton" onclick="joinRoom()">Beitreten</button>
+
+        <button class="redButton" onclick="logout()">Abmelden</button>
       </div>
     </div>
 

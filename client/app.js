@@ -4,6 +4,7 @@ const socketUrl =
     : window.location.origin;
 
 const savedUserId = localStorage.getItem("spielo_userId");
+const savedToken = localStorage.getItem("spielo_token");
 
 const socket = io(socketUrl, {
   auth: {
@@ -16,9 +17,11 @@ let myUserId = null;
 let currentGame = null;
 let currentPlayerId = null;
 let statusResetTimer = null;
+let currentScreen = "loginScreen";
 
 function showScreen(screenId) {
-  const screens = ["lobbyScreen", "roomScreen", "gameScreen"];
+  const screens = ["loginScreen", "lobbyScreen", "roomScreen", "gameScreen"];
+  currentScreen = screenId;
   screens.forEach((id) => {
     const el = document.getElementById(id);
     if (el) {
@@ -28,25 +31,46 @@ function showScreen(screenId) {
 
   const playersContainer = document.getElementById("playersContainer");
   if (playersContainer) {
-    playersContainer.hidden = screenId === "lobbyScreen";
+    playersContainer.hidden =
+      screenId === "loginScreen" || screenId === "lobbyScreen";
   }
 }
 
 socket.on("connect", () => {
-  if (!myUserId) {
-    showStatus("Warte auf Sitzung...", "white");
+  if (savedToken) {
+    socket.emit("auth_with_token", savedToken);
   }
 });
 
-socket.on("session_ready", (data) => {
-  myUserId = data.userId;
-  localStorage.setItem("spielo_userId", data.userId);
+socket.on("auth_success", (user) => {
+  myUserId = user.userId;
+  localStorage.setItem("spielo_userId", user.userId);
+  showScreen("lobbyScreen");
+  document.getElementById("status").innerText =
+    `Eingeloggt als ${user.username}`;
+});
 
-  if (data.currentRoomId) {
-    currentRoom = data.currentRoomId;
-  } else {
-    showScreen("lobbyScreen");
-    document.getElementById("status").innerText = "Bereit";
+socket.on("auth_failed", (msg) => {
+  localStorage.removeItem("spielo_token");
+  showScreen("loginScreen");
+  showStatus(msg, "orange");
+});
+
+socket.on("login_success", ({ user, token }) => {
+  localStorage.setItem("spielo_token", token);
+  myUserId = user.userId;
+  localStorage.setItem("spielo_userId", user.userId);
+  showScreen("lobbyScreen");
+  document.getElementById("status").innerText =
+    `Eingeloggt als ${user.username}`;
+});
+
+socket.on("session_ready", (data) => {
+  if (!myUserId && !savedToken) {
+    myUserId = data.userId;
+    localStorage.setItem("spielo_userId", data.userId);
+    showScreen("loginScreen");
+    document.getElementById("status").innerText = "Bitte anmelden";
   }
 });
 
@@ -415,3 +439,52 @@ function leaveRoom() {
   showScreen("lobbyScreen");
   document.getElementById("status").innerText = "Bereit";
 }
+
+function submitLogin() {
+  const u = document.getElementById("usernameInput").value.trim();
+  const p = document.getElementById("passwordInput").value;
+  if (u && p) socket.emit("login", { username: u, password: p });
+}
+
+function submitRegister() {
+  const u = document.getElementById("usernameInput").value.trim();
+  const p = document.getElementById("passwordInput").value;
+  if (u && p) socket.emit("register", { username: u, password: p });
+}
+
+function continueAsGuest() {
+  const guestNameEl = document.getElementById("guestNameInput");
+  const name = guestNameEl ? guestNameEl.value.trim() : "";
+
+  socket.emit("set_guest_name", name);
+}
+
+socket.on("guest_name_set", (data) => {
+  const user = data || {};
+  myUserId = user.userId || myUserId;
+  if (myUserId) localStorage.setItem("spielo_userId", myUserId);
+
+  showScreen("lobbyScreen");
+  const username = user.username || "Gast";
+  document.getElementById("status").innerText =
+    `Temporär eingeloggt als ${username}`;
+});
+
+function logout() {
+  localStorage.removeItem("spielo_token");
+  socket.disconnect();
+  socket.connect();
+  showScreen("loginScreen");
+  document.getElementById("status").innerText = "Erfolgreich abgemeldet";
+  document.getElementById("usernameInput").value = "";
+  document.getElementById("passwordInput").value = "";
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  const pwInput = document.getElementById("passwordInput");
+  if (pwInput) {
+    pwInput.addEventListener("keypress", (e) => {
+      if (e.key === "Enter") submitLogin();
+    });
+  }
+});
