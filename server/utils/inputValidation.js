@@ -89,14 +89,36 @@ function normalizeAuthCredentials(credentials, { maxBytes = 2048 } = {}) {
     !isPlainObject(credentials) ||
     !isPayloadWithinLimit(credentials, maxBytes)
   ) {
-    return null;
+    return { error: "Ungültige Anmeldedaten." };
+  }
+
+  if (
+    typeof credentials.username !== "string" ||
+    credentials.username.trim().length === 0
+  ) {
+    return { error: "Bitte Benutzernamen ausfüllen." };
+  }
+
+  if (
+    typeof credentials.password !== "string" ||
+    credentials.password.length === 0
+  ) {
+    return { error: "Bitte Passwort ausfüllen." };
   }
 
   const username = normalizeAuthUsername(credentials.username);
-  const password = normalizeAuthPassword(credentials.password);
+  if (!username) {
+    return {
+      error:
+        "Ungültiger Benutzername. Erlaubt sind 3-32 Zeichen: Buchstaben, Zahlen, Punkt, Unterstrich und Bindestrich.",
+    };
+  }
 
-  if (!username || !password) {
-    return null;
+  const password = normalizeAuthPassword(credentials.password);
+  if (!password) {
+    return {
+      error: "Ungültiges Passwort. Es muss 6-128 Zeichen lang sein.",
+    };
   }
 
   return { username, password };

@@ -163,8 +163,9 @@ function registerSocket(io, socket) {
         maxBytes: MAX_EVENT_PAYLOAD_BYTES,
       });
 
-      if (!normalizedCredentials)
-        return socket.emit("error_message", "Bitte alle Felder ausfüllen.");
+      if (normalizedCredentials?.error) {
+        return socket.emit("error_message", normalizedCredentials.error);
+      }
 
       const user = await login(
         normalizedCredentials.username,
@@ -208,8 +209,9 @@ function registerSocket(io, socket) {
         maxBytes: MAX_EVENT_PAYLOAD_BYTES,
       });
 
-      if (!normalizedCredentials)
-        return socket.emit("error_message", "Bitte alle Felder ausfüllen.");
+      if (normalizedCredentials?.error) {
+        return socket.emit("error_message", normalizedCredentials.error);
+      }
 
       const newUser = await createUser(
         normalizedCredentials.username,
