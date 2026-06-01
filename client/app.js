@@ -44,6 +44,9 @@ socket.on("connect", () => {
 
 socket.on("auth_success", (user) => {
   myUserId = user.userId;
+  if (user.currentRoomId) {
+    currentRoom = user.currentRoomId;
+  }
   localStorage.setItem("spielo_userId", user.userId);
   showScreen("lobbyScreen");
   document.getElementById("status").innerText =
@@ -56,9 +59,13 @@ socket.on("auth_failed", (msg) => {
   showStatus(msg, "orange");
 });
 
-socket.on("login_success", ({ user, token }) => {
+socket.on("login_success", (payload) => {
+  const { user, token, currentRoomId } = payload || {};
   localStorage.setItem("spielo_token", token);
   myUserId = user.userId;
+  if (currentRoomId) {
+    currentRoom = currentRoomId;
+  }
   localStorage.setItem("spielo_userId", user.userId);
   showScreen("lobbyScreen");
   document.getElementById("status").innerText =
@@ -66,6 +73,10 @@ socket.on("login_success", ({ user, token }) => {
 });
 
 socket.on("session_ready", (data) => {
+  if (data.currentRoomId) {
+    currentRoom = data.currentRoomId;
+  }
+
   if (!myUserId && !savedToken) {
     myUserId = data.userId;
     localStorage.setItem("spielo_userId", data.userId);
@@ -115,23 +126,26 @@ socket.on("error_message", (msg) => {
 });
 
 socket.on("game_started", (game) => {
-  currentGame = game;
+  currentRoom = game?.roomId || currentRoom;
+  currentGame = game?.game || game;
   hideWinner();
   showScreen("gameScreen");
   document.getElementById("status").innerText = "Spiel läuft";
 
   currentPlayerId =
-    game.players[game.currentPlayerIndex]?.userId || game.players[0].userId;
+    currentGame.players[currentGame.currentPlayerIndex]?.userId ||
+    currentGame.players[0].userId;
 
-  renderHand(game.hands[myUserId] || []);
-  renderTopCard(game.discardPile.at(-1));
-  renderPlayersList(game.players, currentPlayerId, game.hands);
+  renderHand(currentGame.hands[myUserId] || []);
+  renderTopCard(currentGame.discardPile.at(-1));
+  renderPlayersList(currentGame.players, currentPlayerId, currentGame.hands);
   updateTurnIndicator(currentPlayerId);
   updateUnoButtons();
 });
 
 socket.on("game_updated", (data) => {
   currentGame = data.game;
+  currentRoom = data.roomId || currentRoom;
   showScreen("gameScreen");
   document.getElementById("status").innerText = "Spiel läuft";
 

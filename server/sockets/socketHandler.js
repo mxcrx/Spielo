@@ -48,11 +48,15 @@ function restoreRoomState(io, socket) {
     return;
   }
 
+  socket.user.socketId = socket.id;
   socket.join(activeRoom.id);
   joinRoom(activeRoom.id, socket.user);
 
   if (activeRoom.game) {
-    socket.emit("game_started", activeRoom.game);
+    socket.emit("game_started", {
+      roomId: activeRoom.id,
+      game: activeRoom.game,
+    });
   } else {
     io.to(activeRoom.id).emit("room_updated", activeRoom);
   }
@@ -88,7 +92,10 @@ function registerSocket(io, socket) {
     });
 
     if (activeRoom.game) {
-      socket.emit("game_started", activeRoom.game);
+      socket.emit("game_started", {
+        roomId: activeRoom.id,
+        game: activeRoom.game,
+      });
     } else {
       io.to(activeRoom.id).emit("room_updated", activeRoom);
     }
@@ -116,20 +123,22 @@ function registerSocket(io, socket) {
         userId: decoded.userId,
         username: decoded.username,
         role: decoded.role,
+        socketId: socket.id,
       };
 
-      socket.emit("auth_success", socket.user);
+      socket.emit("auth_success", {
+        ...socket.user,
+        currentRoomId: getRoomByUserId(socket.user.userId)?.id || null,
+      });
       restoreRoomState(io, socket);
     } else {
       socket.emit("auth_failed", "Sitzung abgelaufen. Bitte neu anmelden.");
     }
   });
 
-  // Allow client to set a display name for guest accounts
   socket.on("set_guest_name", (name) => {
     try {
       if (typeof name !== "string" || name.trim().length === 0) {
-        // No name provided -> acknowledge current guest info
         return socket.emit("guest_name_set", {
           userId: socket.user.userId,
           username: socket.user.username,
@@ -177,6 +186,7 @@ function registerSocket(io, socket) {
           userId: user.id.toString(),
           username: user.username,
           role: user.role,
+          socketId: socket.id,
         };
 
         updatePlayerIdentity(previousUserId, {
@@ -184,7 +194,11 @@ function registerSocket(io, socket) {
           socketId: socket.id,
         });
 
-        socket.emit("login_success", { user: socket.user, token });
+        socket.emit("login_success", {
+          user: socket.user,
+          token,
+          currentRoomId: getRoomByUserId(socket.user.userId)?.id || null,
+        });
 
         restoreRoomState(io, socket);
       } else {
@@ -223,6 +237,7 @@ function registerSocket(io, socket) {
         userId: newUser.id.toString(),
         username: newUser.username,
         role: newUser.role,
+        socketId: socket.id,
       };
 
       updatePlayerIdentity(previousUserId, {
@@ -230,7 +245,11 @@ function registerSocket(io, socket) {
         socketId: socket.id,
       });
 
-      socket.emit("login_success", { user: socket.user, token });
+      socket.emit("login_success", {
+        user: socket.user,
+        token,
+        currentRoomId: getRoomByUserId(socket.user.userId)?.id || null,
+      });
 
       restoreRoomState(io, socket);
     } catch (error) {
@@ -300,7 +319,10 @@ function registerSocket(io, socket) {
     }
 
     const game = startRoomGame(sanitizedRoomId);
-    io.to(sanitizedRoomId).emit("game_started", game);
+    io.to(sanitizedRoomId).emit("game_started", {
+      roomId: sanitizedRoomId,
+      game,
+    });
   });
 
   socket.on("game_action", (data) => {
@@ -414,7 +436,7 @@ function registerSocket(io, socket) {
             }
           }
         }
-      }, 15000);
+      }, config.maxIdleTime);
     }
   });
 }
