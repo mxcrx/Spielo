@@ -104,6 +104,14 @@ function getCurrentPlayer(game) {
 }
 
 function canPlay(top, card, currentColor) {
+  if (top && (top.value === "wild" || top.value === "+4")) {
+    return (
+      card.value !== "wild" &&
+      card.value !== "+4" &&
+      card.color === currentColor
+    );
+  }
+
   if (card.value === "wild" || card.value === "+4") return true;
 
   if (card.value === "+2") {

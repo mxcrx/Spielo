@@ -413,7 +413,6 @@ h3 {
     height: 100px;
     font-size: 24px;
   }
-  /* Avoid cards being pushed off-screen on small devices */
   #hand .card {
     margin-left: 0;
   }

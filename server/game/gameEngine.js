@@ -15,6 +15,14 @@ function canPlayAnyCard(game, playerId) {
   return hand.some((card) => {
     if (!topCard) return true;
 
+    if (topCard.value === "wild" || topCard.value === "+4") {
+      return (
+        card.value !== "wild" &&
+        card.value !== "+4" &&
+        card.color === game.currentColor
+      );
+    }
+
     if (card.value === "wild" || card.value === "+4") return true;
 
     if (game.currentColor && card.color === game.currentColor) return true;

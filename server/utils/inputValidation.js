@@ -109,8 +109,7 @@ function normalizeAuthCredentials(credentials, { maxBytes = 2048 } = {}) {
   const username = normalizeAuthUsername(credentials.username);
   if (!username) {
     return {
-      error:
-        "Ungültiger Benutzername. Erlaubt sind 3-32 Zeichen: Buchstaben, Zahlen, Punkt, Unterstrich und Bindestrich.",
+      error: "Benutzername muss 3–32 Zeichen enthalten (A–Z, 0–9, ., _, -).",
     };
   }
 

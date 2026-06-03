@@ -3,7 +3,7 @@ const socketUrl =
     ? "http://localhost:3000"
     : window.location.origin;
 
-const savedUserId = localStorage.getItem("spielo_userId");
+let savedUserId = localStorage.getItem("spielo_userId");
 const savedToken = localStorage.getItem("spielo_token");
 
 const socket = io(socketUrl, {
@@ -77,11 +77,27 @@ socket.on("session_ready", (data) => {
     currentRoom = data.currentRoomId;
   }
 
+  const guestNameInput = document.getElementById("guestNameInput");
+  if (guestNameInput && data.username) {
+    guestNameInput.value = data.username === "Gast" ? "" : data.username;
+  }
+
   if (!myUserId && !savedToken) {
     myUserId = data.userId;
-    localStorage.setItem("spielo_userId", data.userId);
-    showScreen("loginScreen");
-    document.getElementById("status").innerText = "Bitte anmelden";
+    if (data.currentRoomId) {
+      localStorage.setItem("spielo_userId", data.userId);
+      savedUserId = data.userId;
+      showScreen("lobbyScreen");
+      document.getElementById("status").innerText = "Bereit";
+    } else {
+      localStorage.removeItem("spielo_userId");
+      savedUserId = null;
+      if (guestNameInput) {
+        guestNameInput.value = "";
+      }
+      showScreen("loginScreen");
+      document.getElementById("status").innerText = "Bitte anmelden";
+    }
   }
 });
 
@@ -478,6 +494,11 @@ socket.on("guest_name_set", (data) => {
   myUserId = user.userId || myUserId;
   if (myUserId) localStorage.setItem("spielo_userId", myUserId);
 
+  const guestNameInput = document.getElementById("guestNameInput");
+  if (guestNameInput && user.username) {
+    guestNameInput.value = user.username === "Gast" ? "" : user.username;
+  }
+
   showScreen("lobbyScreen");
   const username = user.username || "Gast";
   document.getElementById("status").innerText =
@@ -486,12 +507,23 @@ socket.on("guest_name_set", (data) => {
 
 function logout() {
   localStorage.removeItem("spielo_token");
+  localStorage.removeItem("spielo_userId");
+  savedUserId = null;
+  myUserId = null;
+  currentRoom = null;
+  currentGame = null;
+  currentPlayerId = null;
+  socket.auth = { userId: null };
   socket.disconnect();
   socket.connect();
   showScreen("loginScreen");
   document.getElementById("status").innerText = "Erfolgreich abgemeldet";
   document.getElementById("usernameInput").value = "";
   document.getElementById("passwordInput").value = "";
+  const guestNameInput = document.getElementById("guestNameInput");
+  if (guestNameInput) {
+    guestNameInput.value = "";
+  }
 }
 
 document.addEventListener("DOMContentLoaded", () => {

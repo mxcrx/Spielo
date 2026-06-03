@@ -9,7 +9,11 @@ const {
   updatePlayerIdentity,
 } = require("../game/roomManager");
 const { processAction } = require("../game/gameEngine");
-const { createGuestUser } = require("../auth/guestAuth.js");
+const {
+  createGuestUser,
+  setStoredGuestName,
+  clearStoredGuestName,
+} = require("../auth/guestAuth.js");
 const config = require("../config");
 const {
   isAllowedColor,
@@ -147,10 +151,31 @@ function registerSocket(io, socket) {
 
       const normalized = normalizeAuthUsername(name);
       if (!normalized) {
-        return emitInvalidInput(socket, "Ungültiger Benutzername für Gast");
+        return emitInvalidInput(
+          socket,
+          "Gastname muss 3–32 Zeichen enthalten (A–Z, 0–9, ., _, -).",
+        );
       }
 
       socket.user.username = normalized;
+      setStoredGuestName(socket.user.userId, normalized);
+
+      const activeRoom = getRoomByUserId(socket.user.userId);
+      if (activeRoom) {
+        joinRoom(activeRoom.id, socket.user);
+
+        if (activeRoom.game) {
+          io.to(activeRoom.id).emit("game_updated", {
+            roomId: activeRoom.id,
+            game: activeRoom.game,
+            currentPlayer:
+              activeRoom.game.players[activeRoom.game.currentPlayerIndex]
+                ?.userId || null,
+          });
+        } else {
+          io.to(activeRoom.id).emit("room_updated", activeRoom);
+        }
+      }
 
       socket.emit("guest_name_set", {
         userId: socket.user.userId,
@@ -193,6 +218,7 @@ function registerSocket(io, socket) {
           ...socket.user,
           socketId: socket.id,
         });
+        clearStoredGuestName(previousUserId);
 
         socket.emit("login_success", {
           user: socket.user,
@@ -244,6 +270,7 @@ function registerSocket(io, socket) {
         ...socket.user,
         socketId: socket.id,
       });
+      clearStoredGuestName(previousUserId);
 
       socket.emit("login_success", {
         user: socket.user,
