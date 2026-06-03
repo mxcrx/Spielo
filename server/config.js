@@ -29,7 +29,10 @@ module.exports = {
     process.env.SOCKET_MAX_BUFFER_SIZE,
     8192,
   ),
-  maxIdleTime: toPositiveInteger(process.env.MAX_IDLE_TIME, 15000),
+  reconnectGraceTimeMs: toPositiveInteger(
+    process.env.RECONNECT_GRACE_TIME_MS,
+    15000,
+  ),
   dbHost: process.env.DB_HOST || "localhost",
   dbPort: toPositiveInteger(process.env.DB_PORT, 3306),
   dbUser: requireEnv("DB_USER"),

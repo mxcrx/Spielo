@@ -463,7 +463,7 @@ function registerSocket(io, socket) {
             }
           }
         }
-      }, config.maxIdleTime);
+      }, config.reconnectGraceTimeMs);
     }
   });
 }
