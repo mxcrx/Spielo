@@ -7,6 +7,7 @@ const {
   drawMultipleCards,
   checkWinner,
 } = require("./unoGame");
+const matchService = require("../matches/matchService");
 
 function canPlayAnyCard(game, playerId) {
   const hand = game.hands[playerId] || [];
@@ -101,6 +102,7 @@ function handlePlayCard(game, action) {
   if (checkWinner(game, playerId)) {
     response.gameOver = true;
     response.winner = getWinnerName(game, playerId);
+    handleGameEnd(game, playerId);
   }
 
   return response;
@@ -185,6 +187,7 @@ function handleChooseColor(game, action) {
   }
 
   if (checkWinner(game, playerId)) {
+    handleGameEnd(game, playerId);
     return {
       game,
       gameOver: true,
@@ -273,6 +276,22 @@ function processAction(game, action = {}) {
     default:
       return { game, error: "Unknown action" };
   }
+}
+function handleGameEnd(game, winnerId) {
+  if (game.winnerId) return;
+  game.winnerId = winnerId;
+
+  game.players.forEach((player) => {
+    if (player.userId === winnerId) {
+      player.placement = 1;
+    } else {
+      player.placement = 2;
+    }
+  });
+
+  matchService.saveMatch(game).catch((err) => {
+    console.error("[Match History] Fehler beim Hintergrund-Speichern:", err);
+  });
 }
 
 module.exports = {

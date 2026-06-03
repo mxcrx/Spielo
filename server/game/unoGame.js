@@ -43,6 +43,8 @@ function createDeck() {
 }
 
 function startGame(game) {
+  game.startedAt = Date.now();
+  game.gameType = "UNO";
   for (const p of game.players) {
     game.hands[p.userId] = game.deck.splice(0, 5);
   }
