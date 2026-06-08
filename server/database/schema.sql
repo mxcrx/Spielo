@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS users (
     role ENUM('admin', 'user') DEFAULT 'user',
 
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-)
+);
 
 CREATE TABLE IF NOT EXISTS matches (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -22,7 +22,7 @@ CREATE TABLE IF NOT EXISTS matches (
     ended_at DATETIME NOT NULL,
 
     duration_seconds INT NOT NULL
-)
+);
 
 CREATE TABLE IF NOT EXISTS match_players (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -36,4 +36,18 @@ CREATE TABLE IF NOT EXISTS match_players (
     placement INT NOT NULL,
 
     FOREIGN KEY (match_id) REFERENCES matches(id) ON DELETE CASCADE
-)
+);
+
+CREATE TABLE IF NOT EXISTS profiles (
+    user_id INT PRIMARY KEY,
+
+    display_name VARCHAR(255) NULL,
+
+    avatar_url VARCHAR(255) NULL,
+
+    bio VARCHAR(255) NULL,
+
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);

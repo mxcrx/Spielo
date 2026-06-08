@@ -13,13 +13,6 @@ async function createMatchRecord({
   try {
     await connection.beginTransaction();
 
-    console.log("DB-INSERT VERSUCH MIT:", {
-      gameType,
-      winnerId,
-      startedAt,
-      endedAt,
-      durationSeconds,
-    });
     const [matchResult] = await connection.execute(
       `INSERT INTO matches (game_type, winner_id, started_at, ended_at, duration_seconds) VALUES (?, ?, ?, ?, ?)`,
       [gameType, winnerId, startedAt, endedAt, durationSeconds],

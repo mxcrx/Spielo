@@ -6,8 +6,6 @@
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
-    <h1>Spielo UNO</h1>
-
     <div id="winnerBanner" class="winner-banner" hidden></div>
 
     <h2 id="status">Verbinde zum Server...</h2>
@@ -45,6 +43,10 @@
         <button class="blueButton" onclick="joinRoom()">Beitreten</button>
 
         <button class="redButton" onclick="logout()">Abmelden</button>
+
+        <button class="yellowButton" onclick="loadAndShowProfile()">
+          Mein Profil
+        </button>
       </div>
     </div>
 
@@ -113,6 +115,110 @@
 
       <h3>Meine Hand</h3>
       <div id="hand"></div>
+    </div>
+
+    <div id="profileScreen" class="screen" hidden>
+      <div id="menu" class="profile-menu-container">
+        <div id="profileViewMode">
+          <div id="profAvatar" class="profile-avatar"></div>
+          <h2 id="profDisplayName" class="profile-display-name">Anzeigename</h2>
+          <div class="profile-username-wrapper">
+            @<span id="profUsername">username</span>
+          </div>
+
+          <div class="profile-bio-box">
+            <p>
+              <strong>Bio:</strong>
+              <span id="profBio">Keine Bio vorhanden.</span>
+            </p>
+          </div>
+        </div>
+
+        <div id="profileEditMode" class="profile-edit-mode" hidden>
+          <h2>Profil bearbeiten</h2>
+
+          <div class="profile-input-group">
+            <label class="profile-input-label">Anzeigename:</label>
+            <input
+              type="text"
+              id="editDisplayName"
+              class="profile-input-field"
+              maxlength="32"
+            />
+          </div>
+
+          <div class="profile-input-group">
+            <label class="profile-input-label">Bio:</label>
+            <textarea
+              id="editBio"
+              class="profile-textarea-field"
+              maxlength="255"
+              rows="3"
+            ></textarea>
+          </div>
+
+          <div class="profile-input-group">
+            <label class="profile-input-label">Avatar-URL:</label>
+            <input
+              type="url"
+              id="editAvatarUrl"
+              class="profile-input-field"
+              maxlength="255"
+              placeholder="https://..."
+            />
+          </div>
+
+          <div class="profile-edit-actions">
+            <button class="greenButton" onclick="saveProfileChanges()">
+              Speichern
+            </button>
+            <button class="redButton" onclick="toggleProfileEdit(false)">
+              Abbrechen
+            </button>
+          </div>
+        </div>
+
+        <div class="profile-stats-container">
+          <div class="profile-stat-box stat-games">
+            <div id="profTotalGames" class="profile-stat-value stat-color-blue">
+              0
+            </div>
+            <div class="profile-stat-label">Spiele</div>
+          </div>
+          <div class="profile-stat-box stat-wins">
+            <div id="profTotalWins" class="profile-stat-value stat-color-green">
+              0
+            </div>
+            <div class="profile-stat-label">Siege</div>
+          </div>
+          <div class="profile-stat-box stat-playtime">
+            <div
+              id="profTotalPlaytime"
+              class="profile-stat-value stat-color-yellow"
+            >
+              0
+            </div>
+            <div class="profile-stat-label">Spielzeit</div>
+          </div>
+        </div>
+
+        <p class="profile-member-since">
+          Mitglied seit: <span id="profMemberSince">-</span>
+        </p>
+
+        <button
+          class="yellowButton profile-edit-btn"
+          onclick="toggleProfileEdit(true)"
+        >
+          Profil bearbeiten
+        </button>
+        <button
+          class="redButton profile-back-btn"
+          onclick="exitProfileScreen()"
+        >
+          Zurück zur Lobby
+        </button>
+      </div>
     </div>
 
     <div id="playersContainer" class="players-container" hidden>

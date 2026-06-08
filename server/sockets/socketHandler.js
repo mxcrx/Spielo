@@ -27,6 +27,7 @@ const {
 } = require("../utils/inputValidation");
 const { createToken, verifyToken } = require("../auth/jwtService");
 const { login, createUser } = require("../auth/userService");
+const { getProfile, updateProfile } = require("../profile/profileService");
 const { createSocketAuthLimiter } = require("../utils/rateLimit");
 
 const MAX_EVENT_PAYLOAD_BYTES = 2048;
@@ -45,7 +46,39 @@ function emitAuthRateLimit(socket) {
   );
 }
 
-function restoreRoomState(io, socket) {
+async function enrichPlayersWithDisplayNames(players = []) {
+  return Promise.all(
+    players.map(async (player) => {
+      const profile = player?.userId ? await getProfile(player.userId) : null;
+
+      return {
+        ...player,
+        displayName:
+          profile?.displayName || player.displayName || player.username,
+        avatarUrl: profile?.avatarUrl || player.avatarUrl || "",
+      };
+    }),
+  );
+}
+
+async function enrichRoomPayload(room) {
+  if (!room) {
+    return room;
+  }
+
+  return {
+    ...room,
+    players: await enrichPlayersWithDisplayNames(room.players),
+    game: room.game
+      ? {
+          ...room.game,
+          players: await enrichPlayersWithDisplayNames(room.game.players),
+        }
+      : null,
+  };
+}
+
+async function restoreRoomState(io, socket) {
   const activeRoom = getRoomByUserId(socket.user.userId);
 
   if (!activeRoom) {
@@ -57,12 +90,20 @@ function restoreRoomState(io, socket) {
   joinRoom(activeRoom.id, socket.user);
 
   if (activeRoom.game) {
+    const enrichedGame = {
+      ...activeRoom.game,
+      players: await enrichPlayersWithDisplayNames(activeRoom.game.players),
+    };
+
     socket.emit("game_started", {
       roomId: activeRoom.id,
-      game: activeRoom.game,
+      game: enrichedGame,
     });
   } else {
-    io.to(activeRoom.id).emit("room_updated", activeRoom);
+    io.to(activeRoom.id).emit(
+      "room_updated",
+      await enrichRoomPayload(activeRoom),
+    );
   }
 }
 
@@ -96,12 +137,19 @@ function registerSocket(io, socket) {
     });
 
     if (activeRoom.game) {
-      socket.emit("game_started", {
-        roomId: activeRoom.id,
-        game: activeRoom.game,
+      enrichPlayersWithDisplayNames(activeRoom.game.players).then((players) => {
+        socket.emit("game_started", {
+          roomId: activeRoom.id,
+          game: {
+            ...activeRoom.game,
+            players,
+          },
+        });
       });
     } else {
-      io.to(activeRoom.id).emit("room_updated", activeRoom);
+      enrichRoomPayload(activeRoom).then((room) => {
+        io.to(activeRoom.id).emit("room_updated", room);
+      });
     }
   } else {
     socket.emit("session_ready", {
@@ -140,7 +188,7 @@ function registerSocket(io, socket) {
     }
   });
 
-  socket.on("set_guest_name", (name) => {
+  socket.on("set_guest_name", async (name) => {
     try {
       if (typeof name !== "string" || name.trim().length === 0) {
         return socket.emit("guest_name_set", {
@@ -167,13 +215,21 @@ function registerSocket(io, socket) {
         if (activeRoom.game) {
           io.to(activeRoom.id).emit("game_updated", {
             roomId: activeRoom.id,
-            game: activeRoom.game,
+            game: {
+              ...activeRoom.game,
+              players: await enrichPlayersWithDisplayNames(
+                activeRoom.game.players,
+              ),
+            },
             currentPlayer:
               activeRoom.game.players[activeRoom.game.currentPlayerIndex]
                 ?.userId || null,
           });
         } else {
-          io.to(activeRoom.id).emit("room_updated", activeRoom);
+          io.to(activeRoom.id).emit(
+            "room_updated",
+            await enrichRoomPayload(activeRoom),
+          );
         }
       }
 
@@ -287,7 +343,7 @@ function registerSocket(io, socket) {
     }
   });
 
-  socket.on("create_room", () => {
+  socket.on("create_room", async () => {
     if (socket.user.userId.length > 64) {
       return emitInvalidInput(socket, "Ungültige Sitzung");
     }
@@ -295,12 +351,12 @@ function registerSocket(io, socket) {
     const id = createRoom(socket.user);
     socket.join(id);
 
-    const room = getRoom(id);
+    const room = await enrichRoomPayload(getRoom(id));
 
     socket.emit("room_created", { roomId: id, room: room });
   });
 
-  socket.on("join_room", (id) => {
+  socket.on("join_room", async (id) => {
     const roomCode = normalizeRoomCode(id);
 
     if (!roomCode) {
@@ -311,10 +367,10 @@ function registerSocket(io, socket) {
     if (!res.success) return socket.emit("error_message", res.message);
 
     socket.join(roomCode);
-    io.to(roomCode).emit("room_updated", res.room);
+    io.to(roomCode).emit("room_updated", await enrichRoomPayload(res.room));
   });
 
-  socket.on("leave_room", (roomId) => {
+  socket.on("leave_room", async (roomId) => {
     const sanitizedRoomId = normalizeRoomCode(roomId);
 
     if (!sanitizedRoomId) {
@@ -328,7 +384,7 @@ function registerSocket(io, socket) {
     socket.leave(sanitizedRoomId);
 
     if (!res.roomDeleted) {
-      io.to(res.roomId).emit("room_updated", res.room);
+      io.to(res.roomId).emit("room_updated", await enrichRoomPayload(res.room));
 
       if (res.gameAborted) {
         io.to(res.roomId).emit("game_aborted", {
@@ -338,7 +394,7 @@ function registerSocket(io, socket) {
     }
   });
 
-  socket.on("start_game", (roomId) => {
+  socket.on("start_game", async (roomId) => {
     const sanitizedRoomId = normalizeRoomCode(roomId);
 
     if (!sanitizedRoomId) {
@@ -346,13 +402,18 @@ function registerSocket(io, socket) {
     }
 
     const game = startRoomGame(sanitizedRoomId);
+    const enrichedGame = {
+      ...game,
+      players: await enrichPlayersWithDisplayNames(game.players),
+    };
+
     io.to(sanitizedRoomId).emit("game_started", {
       roomId: sanitizedRoomId,
-      game,
+      game: enrichedGame,
     });
   });
 
-  socket.on("game_action", (data) => {
+  socket.on("game_action", async (data) => {
     if (!isPlainObject(data)) {
       return emitInvalidInput(socket, "Ungültige Spielaktion");
     }
@@ -414,7 +475,10 @@ function registerSocket(io, socket) {
 
     if (result.gameUpdated) {
       io.to(sanitizedRoomId).emit("game_updated", {
-        game: room.game,
+        game: {
+          ...room.game,
+          players: await enrichPlayersWithDisplayNames(room.game.players),
+        },
         lastDraw: result.lastDraw,
         lastPlayed: result.lastPlayed,
         currentPlayer:
@@ -424,15 +488,30 @@ function registerSocket(io, socket) {
     }
 
     if (result.gameOver) {
+      const enrichedPlayers = await enrichPlayersWithDisplayNames(
+        room.game.players,
+      );
+      const winner =
+        enrichedPlayers.find(
+          (player) =>
+            player.userId === result.winner ||
+            player.username === result.winner,
+        )?.displayName ||
+        result.winner ||
+        "unknown";
+
       io.to(sanitizedRoomId).emit("game_over", {
-        winner: result.winner || "unknown",
+        winner,
       });
 
       room.game = null;
 
-      setTimeout(() => {
-        io.to(sanitizedRoomId).emit("room_updated", room);
-      }, 4500);
+      setTimeout(async () => {
+        io.to(sanitizedRoomId).emit(
+          "room_updated",
+          await enrichRoomPayload(room),
+        );
+      }, 5000);
     }
   });
 
@@ -441,10 +520,12 @@ function registerSocket(io, socket) {
 
     if (disconnectRes.success) {
       if (!disconnectRes.roomDeleted && !disconnectRes.room.game) {
-        io.to(disconnectRes.roomId).emit("room_updated", disconnectRes.room);
+        enrichRoomPayload(disconnectRes.room).then((room) => {
+          io.to(disconnectRes.roomId).emit("room_updated", room);
+        });
       }
 
-      setTimeout(() => {
+      setTimeout(async () => {
         const checkRoom = getRoom(disconnectRes.roomId);
         const player = checkRoom?.players.find(
           (p) => p.userId === socket.user.userId,
@@ -454,7 +535,10 @@ function registerSocket(io, socket) {
           const res = leaveRoom(socket.user.userId);
 
           if (res.success && !res.roomDeleted) {
-            io.to(res.roomId).emit("room_updated", res.room);
+            io.to(res.roomId).emit(
+              "room_updated",
+              await enrichRoomPayload(res.room),
+            );
 
             if (res.gameAborted) {
               io.to(res.roomId).emit("game_aborted", {
@@ -464,6 +548,66 @@ function registerSocket(io, socket) {
           }
         }
       }, config.reconnectGraceTimeMs);
+    }
+  });
+
+  socket.on("get_profile", async (targetUserId) => {
+    const idToLoad = targetUserId || socket.user.userId;
+    try {
+      const profile = await getProfile(idToLoad);
+
+      if (profile) {
+        socket.emit("profile_data", profile);
+      } else {
+        socket.emit("error_message", "Profil konnte nicht gefunden werden.");
+      }
+    } catch (err) {
+      console.error("Error loading profile:", err);
+      socket.emit("error_message", "Fehler beim Laden des Profils.");
+    }
+  });
+
+  socket.on("update_profile", async (data) => {
+    try {
+      const userId = socket.user.userId;
+
+      if (!userId) {
+        return socket.emit("error_message", "Nicht autorisiert.");
+      }
+
+      const updatedData = await updateProfile(
+        userId,
+        data.displayName,
+        data.bio,
+        data.avatarUrl,
+      );
+
+      const activeRoom = getRoomByUserId(userId);
+      if (activeRoom) {
+        if (activeRoom.game) {
+          io.to(activeRoom.id).emit("game_updated", {
+            roomId: activeRoom.id,
+            game: {
+              ...activeRoom.game,
+              players: await enrichPlayersWithDisplayNames(
+                activeRoom.game.players,
+              ),
+            },
+            currentPlayer:
+              activeRoom.game.players[activeRoom.game.currentPlayerIndex]
+                ?.userId || null,
+          });
+        } else {
+          io.to(activeRoom.id).emit(
+            "room_updated",
+            await enrichRoomPayload(activeRoom),
+          );
+        }
+      }
+
+      socket.emit("profile_update_success", updatedData);
+    } catch (err) {
+      socket.emit("error_message", "Fehler beim Aktualisieren des Profils.");
     }
   });
 }

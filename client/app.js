@@ -18,9 +18,16 @@ let currentGame = null;
 let currentPlayerId = null;
 let statusResetTimer = null;
 let currentScreen = "loginScreen";
+let currentProfileData = null;
 
 function showScreen(screenId) {
-  const screens = ["loginScreen", "lobbyScreen", "roomScreen", "gameScreen"];
+  const screens = [
+    "loginScreen",
+    "lobbyScreen",
+    "roomScreen",
+    "gameScreen",
+    "profileScreen",
+  ];
   currentScreen = screenId;
   screens.forEach((id) => {
     const el = document.getElementById(id);
@@ -32,7 +39,9 @@ function showScreen(screenId) {
   const playersContainer = document.getElementById("playersContainer");
   if (playersContainer) {
     playersContainer.hidden =
-      screenId === "loginScreen" || screenId === "lobbyScreen";
+      screenId === "loginScreen" ||
+      screenId === "lobbyScreen" ||
+      screenId === "profileScreen";
   }
 }
 
@@ -208,6 +217,48 @@ socket.on("game_aborted", (data) => {
   }, 3000);
 });
 
+socket.on("profile_data", (data) => {
+  currentProfileData = data;
+  document.getElementById("profDisplayName").innerText = data.displayName;
+  document.getElementById("profUsername").innerText = data.username;
+  document.getElementById("profBio").innerText =
+    data.bio || "Keine Bio eingetragen.";
+  document.getElementById("profTotalGames").innerText = data.totalGames;
+  document.getElementById("profTotalWins").innerText = data.totalWins;
+  document.getElementById("profTotalPlaytime").innerText =
+    data.totalPlaytime || formatPlaytime(data.totalPlaytimeSeconds);
+  renderAvatarElement(
+    document.getElementById("profAvatar"),
+    data.avatarUrl,
+    data.displayName || data.username,
+  );
+
+  const date = new Date(data.memberSince);
+  document.getElementById("profMemberSince").innerText =
+    date.toLocaleDateString("de-DE");
+
+  showScreen("profileScreen");
+});
+
+socket.on("profile_update_success", (updatedData) => {
+  currentProfileData = {
+    ...(currentProfileData || {}),
+    ...updatedData,
+  };
+  document.getElementById("profDisplayName").innerText =
+    updatedData.displayName;
+  document.getElementById("profBio").innerText =
+    updatedData.bio || "Keine Bio eingetragen.";
+  renderAvatarElement(
+    document.getElementById("profAvatar"),
+    updatedData.avatarUrl,
+    updatedData.displayName || updatedData.username,
+  );
+
+  toggleProfileEdit(false);
+  showStatus("Profil erfolgreich aktualisiert!", "green");
+});
+
 function createRoom() {
   socket.emit("create_room");
 }
@@ -343,6 +394,30 @@ function getCardMarkup(card) {
   return `<span class="card-value">${card.value}</span>`;
 }
 
+function getAvatarInitials(name) {
+  const cleanName = (name || "").trim();
+  if (!cleanName) {
+    return "?";
+  }
+
+  const words = cleanName.split(/\s+/).filter(Boolean);
+  const initials = words.slice(0, 2).map((word) => word[0]?.toUpperCase());
+  return initials.join("") || cleanName.slice(0, 2).toUpperCase();
+}
+
+function renderAvatarElement(element, avatarUrl, name) {
+  if (!element) return;
+
+  const initials = getAvatarInitials(name);
+  const safeUrl = typeof avatarUrl === "string" ? avatarUrl.trim() : "";
+
+  element.classList.toggle("has-avatar", Boolean(safeUrl));
+  element.style.backgroundImage = safeUrl
+    ? `url("${safeUrl.replace(/"/g, '\\"')}")`
+    : "none";
+  element.textContent = safeUrl ? "" : initials;
+}
+
 function renderPlayersList(players, currentPlayer, hands = {}) {
   const div = document.getElementById("players");
   div.innerHTML = "";
@@ -350,10 +425,17 @@ function renderPlayersList(players, currentPlayer, hands = {}) {
   players.forEach((p) => {
     const el = document.createElement("div");
     el.className = "player";
+    const playerName = p.displayName || p.username || "Spieler";
+    const avatar = document.createElement("div");
+    avatar.className = "player-avatar";
+    renderAvatarElement(avatar, p.avatarUrl, playerName);
+
+    const content = document.createElement("div");
+    content.className = "player-content";
 
     const hasHandInfo = hands && hands[p.userId];
     if (hasHandInfo) {
-      let playerText = `${p.username} - ${hands[p.userId].length} Karten`;
+      let playerText = `${playerName} - ${hands[p.userId].length} Karten`;
       if (
         currentGame &&
         currentGame.unoDeclared &&
@@ -361,15 +443,17 @@ function renderPlayersList(players, currentPlayer, hands = {}) {
       ) {
         playerText += " - UNO!";
       }
-      el.innerText = playerText;
+      content.innerText = playerText;
     } else {
-      el.innerText = p.username;
+      content.innerText = playerName;
     }
 
     if (p.userId === currentPlayer) {
       el.classList.add("active");
     }
 
+    el.appendChild(avatar);
+    el.appendChild(content);
     div.appendChild(el);
   });
 }
@@ -398,6 +482,23 @@ function hideWinner() {
   banner.classList.remove("visible");
 }
 
+function formatPlaytime(totalSeconds) {
+  const safeSeconds = Number(totalSeconds) || 0;
+  const totalMinutes = Math.floor(safeSeconds / 60);
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+
+  if (hours === 0) {
+    return `${minutes} Min`;
+  }
+
+  if (minutes === 0) {
+    return `${hours} Std`;
+  }
+
+  return `${hours} Std ${minutes} Min`;
+}
+
 function toggleRoomHostUi(room) {
   const isHost = room?.host === myUserId;
   const startButton = document.getElementById("startGameButton");
@@ -418,7 +519,9 @@ function updateTurnIndicator(currentPlayerId) {
     const player = currentGame.players.find(
       (p) => p.userId === currentPlayerId,
     );
-    indicator.textContent = `${player ? player.username : "Ein Anderer Spieler"} ist am Zug...`;
+    const playerName =
+      player?.displayName || player?.username || "Ein Anderer Spieler";
+    indicator.textContent = `${playerName} ist am Zug...`;
     indicator.className = "turn-indicator other-turn";
   }
 }
@@ -524,6 +627,63 @@ function logout() {
   if (guestNameInput) {
     guestNameInput.value = "";
   }
+}
+
+function loadAndShowProfile(userId = null) {
+  const idToLoad = userId || myUserId;
+  if (!idToLoad) return;
+
+  socket.emit("get_profile", idToLoad);
+}
+
+function toggleProfileEdit(idEditing) {
+  document.getElementById("profileViewMode").hidden = idEditing;
+  document.getElementById("profileEditMode").hidden = !idEditing;
+
+  if (idEditing) {
+    document.getElementById("editDisplayName").value =
+      document.getElementById("profDisplayName").innerText;
+    const currentBio = document.getElementById("profBio").innerText;
+    document.getElementById("editBio").value =
+      currentBio === "Keine Bio eingetragen." ? "" : currentBio;
+    document.getElementById("editAvatarUrl").value =
+      currentProfileData?.avatarUrl || "";
+  }
+}
+
+function saveProfileChanges() {
+  const newDisplayName = document
+    .getElementById("editDisplayName")
+    .value.trim();
+  const newBio = document.getElementById("editBio").value.trim();
+  const newAvatarUrl = document.getElementById("editAvatarUrl").value.trim();
+
+  if (!newDisplayName) {
+    showStatus("Der Anzeigename darf nicht leer sein.", "red");
+    return;
+  }
+
+  if (newAvatarUrl) {
+    const avatarRegex = /^https?:\/\/.+\.(png|jpe?g|webp|gif)(\?.*)?$/i;
+    if (!avatarRegex.test(newAvatarUrl)) {
+      showStatus(
+        "Ungültige Avatar-URL. Verwende https://...jpg/png/webp.",
+        "red",
+      );
+      return;
+    }
+  }
+
+  socket.emit("update_profile", {
+    displayName: newDisplayName,
+    bio: newBio,
+    avatarUrl: newAvatarUrl,
+  });
+}
+
+function exitProfileScreen() {
+  toggleProfileEdit(false);
+  showScreen("lobbyScreen");
 }
 
 document.addEventListener("DOMContentLoaded", () => {
