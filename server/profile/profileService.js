@@ -22,7 +22,6 @@ async function updateProfile(userId, displayName, bio, avatarUrl) {
 
     function isValidAvatarUrl(url) {
       if (!url) return true;
-      // allow only http(s) and common image extensions
       return /^https?:\/\/.+\.(png|jpe?g|webp|gif)(\?.*)?$/i.test(url);
     }
 

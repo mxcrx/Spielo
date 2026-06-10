@@ -571,7 +571,7 @@ function registerSocket(io, socket) {
     try {
       const userId = socket.user.userId;
 
-      if (!userId) {
+      if (!userId || isNaN(Number(userId))) {
         return socket.emit("error_message", "Nicht autorisiert.");
       }
 
