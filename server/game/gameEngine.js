@@ -277,6 +277,7 @@ function processAction(game, action = {}) {
       return { game, error: "Unknown action" };
   }
 }
+
 function handleGameEnd(game, winnerId) {
   if (game.winnerId) return;
   game.winnerId = winnerId;
