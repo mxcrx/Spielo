@@ -36,6 +36,12 @@ function showScreen(screenId) {
     }
   });
 
+  const chatContainer = document.getElementById("chatContainer");
+  if (chatContainer) {
+    chatContainer.hidden =
+      screenId !== "gameScreen" && screenId !== "roomScreen";
+  }
+
   const playersContainer = document.getElementById("playersContainer");
   if (playersContainer) {
     playersContainer.hidden =
@@ -257,6 +263,16 @@ socket.on("profile_update_success", (updatedData) => {
 
   toggleProfileEdit(false);
   showStatus("Profil erfolgreich aktualisiert!", "green");
+});
+
+socket.on("chat_message", appendChatMessage);
+
+socket.on("chat_history", (msgs) => {
+  const container = document.getElementById("chatMessages");
+  if (container) {
+    container.innerHTML = "";
+    msgs.forEach(appendChatMessage);
+  }
 });
 
 function createRoom() {
@@ -686,11 +702,71 @@ function exitProfileScreen() {
   showScreen("lobbyScreen");
 }
 
+function escapeHtml(unsafe) {
+  return (unsafe || "")
+    .toString()
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+function appendChatMessage(msg) {
+  const container = document.getElementById("chatMessages");
+  if (!container) return;
+
+  const div = document.createElement("div");
+  div.className = "chat-message" + (msg.isSystem ? " chat-system" : "");
+
+  const timeStr = new Date(msg.timestamp).toLocaleTimeString("de-DE", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+
+  const timeHtml = `<span class="chat-time">[${timeStr}]</span>`;
+  const senderHtml = msg.isSystem
+    ? `<span class="chat-sender">* ${escapeHtml(msg.sender)}</span>`
+    : `<span class="chat-sender"> ${escapeHtml(msg.sender)}:</span>`;
+  const textHtml = `<span class="chat-text"> ${escapeHtml(msg.text)}</span>`;
+
+  div.innerHTML = msg.isSystem
+    ? `${senderHtml}${textHtml}`
+    : `${timeHtml}${senderHtml}${textHtml}`;
+
+  container.appendChild(div);
+  container.scrollTop = container.scrollHeight;
+}
+
+function toggleChat() {
+  const chatContainer = document.getElementById("chatContainer");
+  if (!chatContainer) return;
+
+  chatContainer.classList.toggle("collapsed");
+
+  if (!chatContainer.classList.contains("collapsed")) {
+    const messages = document.getElementById("chatMessages");
+    if (messages) {
+      messages.scrollTop = messages.scrollHeight;
+    }
+  }
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   const pwInput = document.getElementById("passwordInput");
+  const chatInput = document.getElementById("chatInput");
   if (pwInput) {
     pwInput.addEventListener("keypress", (e) => {
       if (e.key === "Enter") submitLogin();
+    });
+  }
+
+  if (chatInput) {
+    chatInput.addEventListener("keypress", (e) => {
+      if (e.key === "Enter" && chatInput.value.trim()) {
+        socket.emit("chat_message", chatInput.value.trim());
+        chatInput.value = "";
+      }
     });
   }
 });

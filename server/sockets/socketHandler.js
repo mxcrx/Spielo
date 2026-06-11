@@ -28,12 +28,16 @@ const {
 const { createToken, verifyToken } = require("../auth/jwtService");
 const { login, createUser } = require("../auth/userService");
 const { getProfile, updateProfile } = require("../profile/profileService");
-const { createSocketAuthLimiter } = require("../utils/rateLimit");
+const {
+  createSocketAuthLimiter,
+  createChatRateLimiter,
+} = require("../utils/rateLimit");
 
 const MAX_EVENT_PAYLOAD_BYTES = 2048;
 const checkAuthAttempt = createSocketAuthLimiter({
   limit: config.socketAuthLimit,
 });
+const checkChatSpam = createChatRateLimiter({ limit: 5, windowMs: 10000 });
 
 function emitInvalidInput(socket, message) {
   socket.emit("error_message", message);
@@ -44,6 +48,18 @@ function emitAuthRateLimit(socket) {
     "error_message",
     "Zu viele Anmeldeversuche. Bitte in 15 Minuten erneut versuchen.",
   );
+}
+
+function broadcastChatMessage(io, roomId, messageObj) {
+  const room = getRoom(roomId);
+  if (!room) return;
+
+  if (!room.chatHistory) room.chatHistory = [];
+  room.chatHistory.push(messageObj);
+
+  if (room.chatHistory.length > 50) room.chatHistory.shift();
+
+  io.to(roomId).emit("chat_message", messageObj);
 }
 
 async function enrichPlayersWithDisplayNames(players = []) {
@@ -88,6 +104,8 @@ async function restoreRoomState(io, socket) {
   socket.user.socketId = socket.id;
   socket.join(activeRoom.id);
   joinRoom(activeRoom.id, socket.user);
+
+  socket.emit("chat_history", getRoom(activeRoom.id).chatHistory || []);
 
   if (activeRoom.game) {
     const enrichedGame = {
@@ -354,6 +372,13 @@ function registerSocket(io, socket) {
     const room = await enrichRoomPayload(getRoom(id));
 
     socket.emit("room_created", { roomId: id, room: room });
+    socket.emit("chat_history", []);
+    broadcastChatMessage(io, id, {
+      sender: "System",
+      text: `${socket.user.username} ist dem Raum beigetreten.`,
+      timestamp: Date.now(),
+      isSystem: true,
+    });
   });
 
   socket.on("join_room", async (id) => {
@@ -368,6 +393,13 @@ function registerSocket(io, socket) {
 
     socket.join(roomCode);
     io.to(roomCode).emit("room_updated", await enrichRoomPayload(res.room));
+    socket.emit("chat_history", getRoom(roomCode).chatHistory || []);
+    broadcastChatMessage(io, roomCode, {
+      sender: "System",
+      text: `${socket.user.username} ist dem Raum beigetreten.`,
+      timestamp: Date.now(),
+      isSystem: true,
+    });
   });
 
   socket.on("leave_room", async (roomId) => {
@@ -382,6 +414,12 @@ function registerSocket(io, socket) {
     if (!res.success) return;
 
     socket.leave(sanitizedRoomId);
+    broadcastChatMessage(io, res.roomId, {
+      sender: "System",
+      text: `${socket.user.username} hat den Raum verlassen.`,
+      timestamp: Date.now(),
+      isSystem: true,
+    });
 
     if (!res.roomDeleted) {
       io.to(res.roomId).emit("room_updated", await enrichRoomPayload(res.room));
@@ -533,6 +571,12 @@ function registerSocket(io, socket) {
 
         if (player && !player.connected) {
           const res = leaveRoom(socket.user.userId);
+          broadcastChatMessage(io, res.roomId, {
+            sender: "System",
+            text: `${socket.user.username} hat den Raum verlassen.`,
+            timestamp: Date.now(),
+            isSystem: true,
+          });
 
           if (res.success && !res.roomDeleted) {
             io.to(res.roomId).emit(
@@ -609,6 +653,35 @@ function registerSocket(io, socket) {
     } catch (err) {
       socket.emit("error_message", "Fehler beim Aktualisieren des Profils.");
     }
+  });
+  socket.on("chat_message", async (text) => {
+    if (
+      typeof text !== "string" ||
+      text.trim().length === 0 ||
+      text.length > 255
+    )
+      return;
+
+    const spamCheck = checkChatSpam(socket);
+    if (!spamCheck.allowed) {
+      return socket.emit(
+        "error_message",
+        "Zu viele Nachrichten. Bitte kurz warten.",
+      );
+    }
+
+    const activeRoom = getRoomByUserId(socket.user.userId);
+    if (!activeRoom) return;
+
+    const profile = await getProfile(socket.user.userId);
+    const senderName = profile?.displayName || socket.user.username;
+
+    broadcastChatMessage(io, activeRoom.id, {
+      sender: senderName,
+      text: text.trim(),
+      timestamp: Date.now(),
+      isSystem: false,
+    });
   });
 }
 

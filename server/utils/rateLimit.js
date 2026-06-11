@@ -46,8 +46,34 @@ function createSocketAuthLimiter({ limit = 5 } = {}) {
   };
 }
 
+function createChatRateLimiter({ limit = 5, windowMs = 10000 } = {}) {
+  const attempts = new Map();
+
+  setInterval(() => attempts.clear(), 60000);
+
+  return function chatLimiter(socket) {
+    const key = socket.id;
+    const now = Date.now();
+    const current = attempts.get(key);
+
+    if (!current || current.resetAt <= now) {
+      attempts.set(key, { count: 1, resetAt: now + windowMs });
+      return { allowed: true };
+    }
+
+    if (current.count >= limit) {
+      return { allowed: false };
+    }
+
+    current.count += 1;
+    attempts.set(key, current);
+    return { allowed: true };
+  };
+}
+
 module.exports = {
   FIFTEEN_MINUTES,
   createHttpRateLimiter,
   createSocketAuthLimiter,
+  createChatRateLimiter,
 };

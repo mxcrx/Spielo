@@ -2,6 +2,7 @@
 <html lang="de">
   <head>
     <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Spielo</title>
     <link rel="stylesheet" href="style.css" />
   </head>
@@ -224,6 +225,21 @@
     <div id="playersContainer" class="players-container" hidden>
       <h3>Spieler im Raum</h3>
       <div id="players"></div>
+    </div>
+
+    <div id="chatContainer" class="chat-container" hidden>
+      <div id="chatHeader" class="chat-header" onclick="toggleChat()">
+        <span>Chat</span>
+        <span id="chatToggleIcon">▼</span>
+      </div>
+      <div id="chatMessages" class="chat-messages"></div>
+      <input
+        id="chatInput"
+        type="text"
+        placeholder="Nachricht schreiben..."
+        maxlength="200"
+        autocomplete="off"
+      />
     </div>
 
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
