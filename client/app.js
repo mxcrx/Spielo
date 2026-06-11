@@ -755,9 +755,26 @@ function toggleChat() {
 document.addEventListener("DOMContentLoaded", () => {
   const pwInput = document.getElementById("passwordInput");
   const chatInput = document.getElementById("chatInput");
+  const guestNameInput = document.getElementById("guestNameInput");
+  const roomInput = document.getElementById("roomInput");
+
   if (pwInput) {
     pwInput.addEventListener("keypress", (e) => {
       if (e.key === "Enter") submitLogin();
+    });
+  }
+
+  if (guestNameInput) {
+    guestNameInput.addEventListener("keypress", (e) => {
+      if (e.key === "Enter") {
+        continueAsGuest();
+      }
+    });
+  }
+
+  if (roomInput) {
+    roomInput.addEventListener("keypress", (e) => {
+      if (e.key === "Enter") joinRoom();
     });
   }
 

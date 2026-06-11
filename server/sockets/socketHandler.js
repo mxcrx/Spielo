@@ -373,9 +373,13 @@ function registerSocket(io, socket) {
 
     socket.emit("room_created", { roomId: id, room: room });
     socket.emit("chat_history", []);
+
+    const profile = await getProfile(socket.user.userId);
+    const senderName = profile?.displayName || socket.user.username;
+
     broadcastChatMessage(io, id, {
       sender: "System",
-      text: `${socket.user.username} ist dem Raum beigetreten.`,
+      text: `${senderName} ist dem Raum beigetreten.`,
       timestamp: Date.now(),
       isSystem: true,
     });
@@ -394,9 +398,13 @@ function registerSocket(io, socket) {
     socket.join(roomCode);
     io.to(roomCode).emit("room_updated", await enrichRoomPayload(res.room));
     socket.emit("chat_history", getRoom(roomCode).chatHistory || []);
+
+    const profile = await getProfile(socket.user.userId);
+    const senderName = profile?.displayName || socket.user.username;
+
     broadcastChatMessage(io, roomCode, {
       sender: "System",
-      text: `${socket.user.username} ist dem Raum beigetreten.`,
+      text: `${senderName} ist dem Raum beigetreten.`,
       timestamp: Date.now(),
       isSystem: true,
     });
@@ -409,6 +417,8 @@ function registerSocket(io, socket) {
       return emitInvalidInput(socket, "Ungültiger Raumcode");
     }
 
+    const profile = await getProfile(socket.user.userId);
+    const displayName = profile?.displayName || socket.user.username;
     const res = leaveRoom(socket.user.userId);
 
     if (!res.success) return;
@@ -416,7 +426,7 @@ function registerSocket(io, socket) {
     socket.leave(sanitizedRoomId);
     broadcastChatMessage(io, res.roomId, {
       sender: "System",
-      text: `${socket.user.username} hat den Raum verlassen.`,
+      text: `${displayName} hat den Raum verlassen.`,
       timestamp: Date.now(),
       isSystem: true,
     });
@@ -426,7 +436,7 @@ function registerSocket(io, socket) {
 
       if (res.gameAborted) {
         io.to(res.roomId).emit("game_aborted", {
-          message: `${res.leftPlayerName} hat den Raum verlassen. Das Spiel wurde abgebrochen.`,
+          message: `${displayName} hat den Raum verlassen. Das Spiel wurde abgebrochen.`,
         });
       }
     }
@@ -570,10 +580,13 @@ function registerSocket(io, socket) {
         );
 
         if (player && !player.connected) {
+          const profile = await getProfile(socket.user.userId);
+          const displayName = profile?.displayName || socket.user.username;
           const res = leaveRoom(socket.user.userId);
+
           broadcastChatMessage(io, res.roomId, {
             sender: "System",
-            text: `${socket.user.username} hat den Raum verlassen.`,
+            text: `${displayName} hat den Raum verlassen.`,
             timestamp: Date.now(),
             isSystem: true,
           });
@@ -586,7 +599,7 @@ function registerSocket(io, socket) {
 
             if (res.gameAborted) {
               io.to(res.roomId).emit("game_aborted", {
-                message: `${res.leftPlayerName} hat das Spiel verlassen. Das Spiel wurde abgebrochen.`,
+                message: `${displayName} hat das Spiel verlassen. Das Spiel wurde abgebrochen.`,
               });
             }
           }
