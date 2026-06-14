@@ -4,7 +4,7 @@ const socketUrl =
     : window.location.origin;
 
 let savedUserId = localStorage.getItem("spielo_userId");
-const savedToken = localStorage.getItem("spielo_token");
+let savedToken = localStorage.getItem("spielo_token");
 
 const socket = io(socketUrl, {
   auth: {
@@ -64,8 +64,7 @@ socket.on("auth_success", (user) => {
   }
   localStorage.setItem("spielo_userId", user.userId);
   showScreen("lobbyScreen");
-  document.getElementById("status").innerText =
-    `Eingeloggt als ${user.username}`;
+  showStatus(`Eingeloggt als ${user.username}`, "green");
 });
 
 socket.on("auth_failed", (msg) => {
@@ -83,8 +82,7 @@ socket.on("login_success", (payload) => {
   }
   localStorage.setItem("spielo_userId", user.userId);
   showScreen("lobbyScreen");
-  document.getElementById("status").innerText =
-    `Eingeloggt als ${user.username}`;
+  showStatus(`Eingeloggt als ${user.username}`, "green");
 });
 
 socket.on("session_ready", (data) => {
@@ -103,7 +101,6 @@ socket.on("session_ready", (data) => {
       localStorage.setItem("spielo_userId", data.userId);
       savedUserId = data.userId;
       showScreen("lobbyScreen");
-      document.getElementById("status").innerText = "Bereit";
     } else {
       localStorage.removeItem("spielo_userId");
       savedUserId = null;
@@ -111,7 +108,7 @@ socket.on("session_ready", (data) => {
         guestNameInput.value = "";
       }
       showScreen("loginScreen");
-      document.getElementById("status").innerText = "Bitte anmelden";
+      showStatus("Bitte anmelden");
     }
   }
 });
@@ -119,7 +116,7 @@ socket.on("session_ready", (data) => {
 socket.on("room_created", (data) => {
   currentRoom = data.roomId;
   document.getElementById("roomCodeDisplay").innerText = currentRoom;
-  document.getElementById("status").innerText = "Raum erstellt: ";
+  showStatus("Raum erstellt");
   showScreen("roomScreen");
 
   toggleRoomHostUi(data.room);
@@ -132,7 +129,7 @@ socket.on("room_created", (data) => {
 socket.on("room_updated", (room) => {
   currentRoom = room.id;
   document.getElementById("roomCodeDisplay").innerText = room.id;
-  document.getElementById("status").innerText = "Im Warteraum";
+  showStatus("Im Warteraum");
   showScreen("roomScreen");
 
   toggleRoomHostUi(room);
@@ -141,19 +138,7 @@ socket.on("room_updated", (room) => {
 });
 
 socket.on("error_message", (msg) => {
-  const status = document.getElementById("status");
-  const oldText = status.innerText;
-  status.innerText = msg;
-  status.style.color = "red";
-
-  if (statusResetTimer) {
-    clearTimeout(statusResetTimer);
-  }
-
-  statusResetTimer = setTimeout(() => {
-    status.style.removeProperty("color");
-    status.innerText = oldText;
-  }, 1500);
+  showStatus(msg, "red");
 });
 
 socket.on("game_started", (game) => {
@@ -161,7 +146,7 @@ socket.on("game_started", (game) => {
   currentGame = game?.game || game;
   hideWinner();
   showScreen("gameScreen");
-  document.getElementById("status").innerText = "Spiel läuft";
+  showStatus("Spiel gestartet");
 
   currentPlayerId =
     currentGame.players[currentGame.currentPlayerIndex]?.userId ||
@@ -178,7 +163,6 @@ socket.on("game_updated", (data) => {
   currentGame = data.game;
   currentRoom = data.roomId || currentRoom;
   showScreen("gameScreen");
-  document.getElementById("status").innerText = "Spiel läuft";
 
   currentPlayerId = data.currentPlayer || currentPlayerId;
 
@@ -192,12 +176,12 @@ socket.on("game_updated", (data) => {
 socket.on("game_over", (data) => {
   showWinner(data.winner);
 
-  document.getElementById("status").innerText = "Spiel beendet";
+  showStatus("Spiel beendet");
   setTimeout(() => {
     hideWinner();
 
     showScreen("roomScreen");
-    document.getElementById("status").innerText = "Im Warteraum";
+    showStatus("Im Warteraum");
 
     document.getElementById("hand").innerHTML = "";
     document.getElementById("topCard").innerHTML = "";
@@ -219,7 +203,6 @@ socket.on("game_aborted", (data) => {
     currentRoom = null;
     document.getElementById("players").innerHTML = "";
     showScreen("lobbyScreen");
-    document.getElementById("status").innerText = "Bereit";
   }, 3000);
 });
 
@@ -322,17 +305,25 @@ function playCard(cardIndex) {
   sendGameAction("PLAY_CARD", { cardIndex });
 }
 
-function showStatus(msg, color = "red") {
+function showStatus(msg, color = "white", duration = 1500) {
   const status = document.getElementById("status");
   if (!status) return;
+
   status.innerText = msg;
+  status.style.color = color;
+
   if (statusResetTimer) {
     clearTimeout(statusResetTimer);
   }
-  status.style.color = color;
-  statusResetTimer = setTimeout(() => {
-    status.style.removeProperty("color");
-  }, 1500);
+
+  status.classList.add("show");
+  if (duration > 0) {
+    statusResetTimer = setTimeout(() => {
+      status.classList.remove("show");
+
+      setTimeout(() => status.style.removeProperty("color"), 400);
+    }, duration);
+  }
 }
 
 function renderHand(hand) {
@@ -586,7 +577,7 @@ function leaveRoom() {
   currentRoom = null;
   currentGame = null;
   showScreen("lobbyScreen");
-  document.getElementById("status").innerText = "Bereit";
+  showStatus("Raum verlassen");
 }
 
 function submitLogin() {
@@ -620,14 +611,14 @@ socket.on("guest_name_set", (data) => {
 
   showScreen("lobbyScreen");
   const username = user.username || "Gast";
-  document.getElementById("status").innerText =
-    `Temporär eingeloggt als ${username}`;
+  showStatus(`Temporär eingeloggt als ${username}`);
 });
 
 function logout() {
   localStorage.removeItem("spielo_token");
   localStorage.removeItem("spielo_userId");
   savedUserId = null;
+  savedToken = null;
   myUserId = null;
   currentRoom = null;
   currentGame = null;
@@ -636,13 +627,10 @@ function logout() {
   socket.disconnect();
   socket.connect();
   showScreen("loginScreen");
-  document.getElementById("status").innerText = "Erfolgreich abgemeldet";
+  showStatus("Erfolgreich abgemeldet");
   document.getElementById("usernameInput").value = "";
   document.getElementById("passwordInput").value = "";
-  const guestNameInput = document.getElementById("guestNameInput");
-  if (guestNameInput) {
-    guestNameInput.value = "";
-  }
+  document.getElementById("guestNameInput").value = "";
 }
 
 function loadAndShowProfile(userId = null) {

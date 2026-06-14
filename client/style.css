@@ -27,6 +27,38 @@ body::before {
   pointer-events: none;
 }
 
+#status {
+  position: fixed;
+  top: -100px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10000;
+
+  background: rgba(23, 26, 33, 0.95);
+  color: #ffffff;
+  padding: 12px 28px;
+  border-radius: 40px;
+  font-size: 1rem;
+  font-weight: 600;
+  text-align: center;
+  white-space: nowrap;
+
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+
+  transition:
+    top 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275),
+    opacity 0.3s ease;
+  opacity: 0;
+  pointer-events: none;
+}
+
+#status.show {
+  top: 24px;
+  opacity: 1;
+  pointer-events: auto;
+}
+
 h1,
 h2,
 h3 {
@@ -806,7 +838,7 @@ h3 {
   body {
     display: grid;
     grid-template-columns: 1fr;
-    grid-template-rows: auto 1fr;
+    grid-template-rows: 1fr;
     height: 100vh;
     padding: 24px;
     overflow: hidden;
@@ -845,15 +877,9 @@ h3 {
     margin: 0;
   }
 
-  #status {
-    grid-column: 1 / -1;
-    grid-row: 1;
-    margin: 0 0 4px 0;
-  }
-
   .screen {
     grid-column: 1;
-    grid-row: 2;
+    grid-row: 1;
     height: 100%;
     overflow-y: auto;
     padding-right: 8px;
@@ -861,7 +887,7 @@ h3 {
 
   .players-container {
     grid-column: 2;
-    grid-row: 2;
+    grid-row: 1;
     margin-top: 0;
     height: calc(100% - 60px);
     overflow-y: auto;
