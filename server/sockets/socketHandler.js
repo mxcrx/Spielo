@@ -29,6 +29,13 @@ const { createToken, verifyToken } = require("../auth/jwtService");
 const { login, createUser } = require("../auth/userService");
 const { getProfile, updateProfile } = require("../profile/profileService");
 const {
+  sendFriendRequest,
+  acceptFriendRequest,
+  declineFriendRequest,
+  removeFriend,
+  getFriendsListData,
+} = require("../friends/friendsService");
+const {
   createSocketAuthLimiter,
   createChatRateLimiter,
 } = require("../utils/rateLimit");
@@ -50,6 +57,45 @@ function emitAuthRateLimit(socket) {
   );
 }
 
+async function notifyFriendsStatusChange(io, userId) {
+  if (!userId || isNaN(Number(userId))) return;
+
+  try {
+    const data = await getFriendsListData(userId, io);
+    const friendIds = data.friends.map((friend) => Number(friend.userId));
+
+    const activeSockets = Array.from(io.sockets.sockets.values());
+    for (const socket of activeSockets) {
+      if (
+        socket.user &&
+        socket.user.userId &&
+        !isNaN(Number(socket.user.userId))
+      ) {
+        if (friendIds.includes(Number(socket.user.userId))) {
+          const friendData = await getFriendsListData(socket.user.userId, io);
+          socket.emit("friends_data", friendData);
+        }
+      }
+    }
+  } catch (err) {
+    console.error("Fehler in notifyFriendsStatusChange:", err);
+  }
+}
+
+async function sendDirectFriendsUpdate(io, userId) {
+  if (!userId) return;
+
+  const targetSockets = Array.from(io.sockets.sockets.values()).filter(
+    (socket) => socket.user && Number(socket.user.userId) === Number(userId),
+  );
+
+  if (targetSockets.length > 0) {
+    const data = await getFriendsListData(userId, io);
+    for (const targetSocket of targetSockets) {
+      targetSocket.emit("friends_data", data);
+    }
+  }
+}
 function broadcastChatMessage(io, roomId, messageObj) {
   const room = getRoom(roomId);
   if (!room) return;
@@ -176,7 +222,7 @@ function registerSocket(io, socket) {
       socketId: socket.id,
     });
   }
-  socket.on("auth_with_token", (token) => {
+  socket.on("auth_with_token", async (token) => {
     if (!consumeAuthAttempt(socket)) {
       return;
     }
@@ -201,6 +247,7 @@ function registerSocket(io, socket) {
         currentRoomId: getRoomByUserId(socket.user.userId)?.id || null,
       });
       restoreRoomState(io, socket);
+      notifyFriendsStatusChange(io, socket.user.userId);
     } else {
       socket.emit("auth_failed", "Sitzung abgelaufen. Bitte neu anmelden.");
     }
@@ -301,6 +348,7 @@ function registerSocket(io, socket) {
         });
 
         restoreRoomState(io, socket);
+        notifyFriendsStatusChange(io, socket.user.userId);
       } else {
         socket.emit("error_message", "Falscher Benutzername oder Passwort.");
       }
@@ -353,6 +401,7 @@ function registerSocket(io, socket) {
       });
 
       restoreRoomState(io, socket);
+      notifyFriendsStatusChange(io, socket.user.userId);
     } catch (error) {
       socket.emit(
         "error_message",
@@ -563,8 +612,9 @@ function registerSocket(io, socket) {
     }
   });
 
-  socket.on("disconnect", () => {
+  socket.on("disconnect", async () => {
     const disconnectRes = handleDisconnect(socket.user.userId, socket.id);
+    const userId = socket.user?.userId;
 
     if (disconnectRes.success) {
       if (!disconnectRes.roomDeleted && !disconnectRes.room.game) {
@@ -606,6 +656,7 @@ function registerSocket(io, socket) {
         }
       }, config.reconnectGraceTimeMs);
     }
+    notifyFriendsStatusChange(io, userId);
   });
 
   socket.on("get_profile", async (targetUserId) => {
@@ -667,6 +718,7 @@ function registerSocket(io, socket) {
       socket.emit("error_message", "Fehler beim Aktualisieren des Profils.");
     }
   });
+
   socket.on("chat_message", async (text) => {
     if (
       typeof text !== "string" ||
@@ -695,6 +747,89 @@ function registerSocket(io, socket) {
       timestamp: Date.now(),
       isSystem: false,
     });
+  });
+
+  socket.on("get_friends_data", async () => {
+    if (!socket.user?.userId || isNaN(Number(socket.user.userId))) return;
+
+    try {
+      const data = await getFriendsListData(socket.user.userId, io);
+      socket.emit("friends_data", data);
+    } catch (err) {
+      socket.emit("error_message", "Fehler beim Laden der Freundesliste.");
+    }
+  });
+
+  socket.on("send_friend_request", async (targetUsername) => {
+    if (!socket.user?.userId || isNaN(Number(socket.user.userId))) return;
+
+    try {
+      const receiverId = await sendFriendRequest(
+        socket.user.userId,
+        targetUsername,
+      );
+
+      socket.emit("friend_action_result", {
+        success: true,
+        text: `Anfrage an ${targetUsername} gesendet.`,
+      });
+
+      await sendDirectFriendsUpdate(io, receiverId);
+      await sendDirectFriendsUpdate(io, socket.user.userId);
+    } catch (err) {
+      socket.emit("friend_action_result", {
+        success: false,
+        text: err.message || "Fehler beim Senden der Freundschaftsanfrage.",
+      });
+    }
+  });
+
+  socket.on("accept_friend_request", async (requesterId) => {
+    if (!socket.user?.userId || isNaN(Number(socket.user.userId))) return;
+
+    try {
+      await acceptFriendRequest(socket.user.userId, requesterId);
+
+      const reqSocket = Array.from(io.sockets.sockets.values()).find(
+        (socket) =>
+          socket.user && Number(socket.user.userId) === Number(requesterId),
+      );
+      if (reqSocket) {
+        reqSocket.emit("friend_action_result", {
+          success: true,
+          text: `${socket.user.username} hat deine Freundschaftsanfrage akzeptiert.`,
+        });
+      }
+
+      await sendDirectFriendsUpdate(io, requesterId);
+      await sendDirectFriendsUpdate(io, socket.user.userId);
+    } catch (err) {
+      socket.emit("error_message", err.message);
+    }
+  });
+  socket.on("decline_friend_request", async (requesterId) => {
+    if (!socket.user?.userId || isNaN(Number(socket.user.userId))) return;
+
+    try {
+      await declineFriendRequest(socket.user.userId, requesterId);
+
+      await sendDirectFriendsUpdate(io, requesterId);
+      await sendDirectFriendsUpdate(io, socket.user.userId);
+    } catch (err) {
+      socket.emit("error_message", err.message);
+    }
+  });
+
+  socket.on("remove_friend", async (friendId) => {
+    if (!socket.user?.userId || isNaN(Number(socket.user.userId))) return;
+    try {
+      await removeFriend(socket.user.userId, friendId);
+
+      await sendDirectFriendsUpdate(io, friendId);
+      await sendDirectFriendsUpdate(io, socket.user.userId);
+    } catch (err) {
+      socket.emit("error_message", err.message);
+    }
   });
 }
 

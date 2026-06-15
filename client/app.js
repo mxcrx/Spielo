@@ -19,6 +19,9 @@ let currentPlayerId = null;
 let statusResetTimer = null;
 let currentScreen = "loginScreen";
 let currentProfileData = null;
+let isFriendsMenuOpen = false;
+let currentFriends = [];
+let currentFriendRequests = [];
 
 function showScreen(screenId) {
   const screens = [
@@ -256,6 +259,19 @@ socket.on("chat_history", (msgs) => {
     container.innerHTML = "";
     msgs.forEach(appendChatMessage);
   }
+});
+
+socket.on("friends_data", (data) => {
+  currentFriends = data.friends || [];
+  currentFriendRequests = data.requests || [];
+
+  renderFriendsList();
+  renderFriendRequests();
+  updateRequestBadge();
+});
+
+socket.on("friend_action_result", (msg) => {
+  showStatus(msg.text, msg.success ? "green" : "red");
 });
 
 function createRoom() {
@@ -737,6 +753,150 @@ function toggleChat() {
     if (messages) {
       messages.scrollTop = messages.scrollHeight;
     }
+  }
+}
+
+function toggleFriendsMenu() {
+  const overlay = document.getElementById("friendsOverlay");
+  isFriendsMenuOpen = !isFriendsMenuOpen;
+  overlay.hidden = !isFriendsMenuOpen;
+
+  if (isFriendsMenuOpen) {
+    switchFriendsTab("list");
+    if (myUserId && !isNaN(Number(myUserId))) {
+      socket.emit("get_friends_data");
+    } else {
+      const listContainer = document.getElementById("friendsListContainer");
+      if (listContainer) {
+        listContainer.innerHTML = `<p style="opacity: 0.5; text-align: center; padding: 10px;">Melde dich an, um das Freundesystem zu nutzen!</p>`;
+      }
+      const requestsContainer = document.getElementById(
+        "friendRequestsContainer",
+      );
+      if (requestsContainer) {
+        requestsContainer.innerHTML = `<p style="opacity: 0.5; text-align: center; padding: 10px;">Melde dich an, um das Freundesystem zu nutzen!</p>`;
+      }
+    }
+  }
+}
+
+function switchFriendsTab(tab) {
+  const listContainer = document.getElementById("friendsListContainer");
+  const requestsContainer = document.getElementById("friendRequestsContainer");
+  const tabBtns = document.querySelectorAll(".tab-btn");
+
+  if (!listContainer || !requestsContainer || tabBtns.length < 2) return;
+
+  tabBtns[0].classList.toggle("active", tab === "list");
+  tabBtns[1].classList.toggle("active", tab === "requests");
+
+  listContainer.style.display = tab === "list" ? "block" : "none";
+  requestsContainer.style.display = tab === "requests" ? "block" : "none";
+}
+
+function sendFriendRequest() {
+  const input = document.getElementById("friendSearchInput");
+  const targetUsername = input.value.trim();
+
+  if (!targetUsername) return;
+
+  socket.emit("send_friend_request", targetUsername);
+  input.value = "";
+}
+
+function acceptFriendRequest(requesterId) {
+  socket.emit("accept_friend_request", requesterId);
+}
+
+function declineFriendRequest(requesterId) {
+  socket.emit("decline_friend_request", requesterId);
+}
+
+function removeFriend(friendId) {
+  if (confirm("Möchtest du diesen Freund wirklich entfernen?")) {
+    socket.emit("remove_friend", friendId);
+  }
+}
+
+function renderFriendsList() {
+  const container = document.getElementById("friendsListContainer");
+  if (!container) return;
+  container.innerHTML = "";
+
+  if (currentFriends.length === 0) {
+    container.innerHTML = `<p style="opacity: 0.5; text-align: center;">Du hast noch keine Freunde hinzugefügt.</p>`;
+    return;
+  }
+
+  currentFriends.forEach((friend) => {
+    const isOnline = friend.isOnline;
+    const div = document.createElement("div");
+    div.className = "friend-item";
+    div.style.display = "flex";
+    div.style.justifyContent = "space-between";
+    div.style.alignItems = "center";
+    div.style.padding = "10px";
+    div.style.background = "rgba(255, 255, 255, 0.05)";
+    div.style.borderRadius = "8px";
+
+    const statusDot = `<span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: ${isOnline ? "#00e676" : "#555"}; margin-right: 10px;"></span>`;
+
+    div.innerHTML = `
+    <div style="display: flex; align-items: center;">
+      ${statusDot}
+      <strong>${escapeHtml(friend.displayName || friend.username)}</strong>
+    </div>
+    <div>
+      <button onclick="removeFriend('${friend.userId}')" style="background: transparent; border: none; color: #ff3b3b; cursor: pointer;" title="Freund entfernen">✖</button>
+    </div>
+     `;
+    container.appendChild(div);
+  });
+}
+
+function renderFriendRequests() {
+  const container = document.getElementById("friendRequestsContainer");
+  if (!container) return;
+  container.innerHTML = "";
+
+  if (currentFriendRequests.length === 0) {
+    container.innerHTML = `<p style="opacity: 0.5; text-align: center;">Keine offenen Anfragen.</p>`;
+    return;
+  }
+
+  currentFriendRequests.forEach((req) => {
+    const div = document.createElement("div");
+    div.className = "friend-item";
+    div.style.display = "flex";
+    div.style.justifyContent = "space-between";
+    div.style.alignItems = "center";
+    div.style.padding = "10px";
+    div.style.background = "rgba(255, 255, 255, 0.05)";
+    div.style.borderRadius = "8px";
+
+    div.innerHTML = `
+    <div>
+      <strong>${escapeHtml(req.username)}</strong> möchte dein Freund sein.
+    </div>
+    <div style="display: flex; gap: 5px;">
+      <button class="greenButton" style="padding: 5px 10px; font-size: 0.8rem;" onclick="acceptFriendRequest('${req.userId}')">✔</button>
+      <button class="redButton" style="padding: 5px 10px; font-size: 0.8rem;" onclick="declineFriendRequest('${req.userId}')">✖</button>
+    </div>
+      `;
+    container.appendChild(div);
+  });
+}
+
+function updateRequestBadge() {
+  const badge = document.getElementById("requestBadge");
+  if (!badge) return;
+
+  const count = currentFriendRequests.length;
+  if (count > 0) {
+    badge.innerText = count;
+    badge.hidden = false;
+  } else {
+    badge.hidden = true;
   }
 }
 

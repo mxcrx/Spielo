@@ -48,6 +48,9 @@
         <button class="yellowButton" onclick="loadAndShowProfile()">
           Mein Profil
         </button>
+        <button class="blueButton" onclick="toggleFriendsMenu()">
+          Freunde
+        </button>
       </div>
     </div>
 
@@ -240,6 +243,44 @@
         maxlength="200"
         autocomplete="off"
       />
+    </div>
+    <div id="friendsOverlay" class="friends-overlay" hidden>
+      <div class="friends-panel">
+        <div class="friends-header">
+          <h2>Deine Freunde</h2>
+          <button class="close-btn" onclick="toggleFriendsMenu()">X</button>
+        </div>
+
+        <div class="friends-add-section">
+          <input
+            type="text"
+            id="friendSearchInput"
+            placeholder="Benutzername eingeben..."
+          />
+          <button class="greenButton" onclick="sendFriendRequest()">
+            Senden
+          </button>
+        </div>
+
+        <div class="friends-tabs">
+          <button class="tab-btn active" onclick="switchFriendsTab('list')">
+            Freunde
+          </button>
+          <button class="tab-btn" onclick="switchFriendsTab('requests')">
+            Anfragen <span id="requestBadge" class="badge" hidden>0</span>
+          </button>
+        </div>
+
+        <div id="friendsListContainer" class="friends-content-area">
+          <p style="opacity: 0.5; text-align: center">Lade Freunde...</p>
+        </div>
+
+        <div
+          id="friendRequestsContainer"
+          class="friends-content-area"
+          hidden
+        ></div>
+      </div>
     </div>
 
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
