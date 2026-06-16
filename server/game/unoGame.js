@@ -10,6 +10,7 @@ function createUnoGame(players) {
     pendingDraw: 0,
     turnState: "idle",
     currentColor: null,
+    lastActionAt: null,
   };
 }
 

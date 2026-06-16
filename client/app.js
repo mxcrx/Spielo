@@ -550,7 +550,7 @@ function updateTurnIndicator(currentPlayerId) {
 }
 
 function callUno() {
-  sendGameAction("CALL_UNO");
+  sendGameAction("CALL_UNO", {}, { allowWhenNotCurrent: true });
 }
 
 function challengeUno() {
@@ -565,7 +565,7 @@ function updateUnoButtons() {
   const myHand = currentGame.hands[myUserId] || [];
   const unoDeclared = currentGame.unoDeclared || {};
 
-  if (myHand.length > 0 && myHand.length <= 2 && !unoDeclared[myUserId]) {
+  if (myHand.length === 1 && !unoDeclared[myUserId]) {
     unoButton.style.display = "inline-block";
   } else {
     unoButton.style.display = "none";

@@ -548,9 +548,13 @@ function registerSocket(io, socket) {
     const room = getRoom(sanitizedRoomId);
     if (!room?.game) return;
 
+    const allowedWhenNotCurrent =
+      normalizedAction.type === "CALL_UNO" ||
+      normalizedAction.type === "CHALLENGE_UNO";
     if (
+      !allowedWhenNotCurrent &&
       room.game.players[room.game.currentPlayerIndex]?.userId !==
-      normalizedAction.playerId
+        normalizedAction.playerId
     ) {
       return emitInvalidInput(socket, "Nicht dein Zug");
     }

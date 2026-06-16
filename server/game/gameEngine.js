@@ -105,6 +105,7 @@ function handlePlayCard(game, action) {
     handleGameEnd(game, playerId);
   }
 
+  game.lastActionAt = Date.now();
   return response;
 }
 
@@ -221,16 +222,35 @@ function handleChooseColor(game, action) {
 }
 
 function handleCallUno(game, action) {
+  const now = Date.now();
+  const GRACE_PERIOD_MS = 1000;
+
   const hand = game.hands[action.playerId] || [];
 
-  if (hand.length <= 2 && hand.length > 0) {
-    game.unoDeclared[action.playerId] = true;
-    return { game, gameUpdated: true };
+  if (hand.length !== 1) {
+    return { game, error: "Du kannst jetzt kein UNO rufen!" };
   }
-  return { game, error: "Du kannst jetzt kein UNO rufen!" };
+
+  if (game.lastActionAt && now - game.lastActionAt > GRACE_PERIOD_MS) {
+    return { game, error: "Du kannst jetzt kein UNO mehr rufen!" };
+  }
+
+  game.unoDeclared[action.playerId] = true;
+
+  return {
+    game,
+    gameUpdated: true,
+  };
 }
 
 function handleChallengeUno(game, action) {
+  const now = Date.now();
+  const GRACE_PERIOD_MS = 1000;
+
+  if (game.lastActionAt && now - game.lastActionAt < GRACE_PERIOD_MS) {
+    return { game, error: "Du musst noch kurz warten!" };
+  }
+
   let violatorId = null;
 
   for (const p of game.players) {
