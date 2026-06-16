@@ -12,7 +12,10 @@ async function createUser(username, password) {
 
     const userId = result.insertId;
 
-    await pool.execute(`INSERT INTO profiles (user_id) VALUES (?)`, [userId]);
+    await pool.execute(
+      `INSERT INTO profiles (user_id, display_name) VALUES (?, ?)`,
+      [userId, username],
+    );
     return { id: result.insertId, username, role: "user" };
   } catch (err) {
     if (err.code === "ER_DUP_ENTRY") {
