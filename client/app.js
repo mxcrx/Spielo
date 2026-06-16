@@ -905,6 +905,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const chatInput = document.getElementById("chatInput");
   const guestNameInput = document.getElementById("guestNameInput");
   const roomInput = document.getElementById("roomInput");
+  const friendSearchInput = document.getElementById("friendSearchInput");
 
   if (pwInput) {
     pwInput.addEventListener("keypress", (e) => {
@@ -923,6 +924,12 @@ document.addEventListener("DOMContentLoaded", () => {
   if (roomInput) {
     roomInput.addEventListener("keypress", (e) => {
       if (e.key === "Enter") joinRoom();
+    });
+  }
+
+  if (friendSearchInput) {
+    friendSearchInput.addEventListener("keypress", (e) => {
+      if (e.key === "Enter") sendFriendRequest();
     });
   }
 
