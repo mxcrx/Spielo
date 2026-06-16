@@ -821,69 +821,160 @@ function removeFriend(friendId) {
 function renderFriendsList() {
   const container = document.getElementById("friendsListContainer");
   if (!container) return;
+
   container.innerHTML = "";
 
   if (currentFriends.length === 0) {
-    container.innerHTML = `<p style="opacity: 0.5; text-align: center;">Du hast noch keine Freunde hinzugefügt.</p>`;
+    const empty = document.createElement("p");
+    empty.style.opacity = "0.5";
+    empty.style.textAlign = "center";
+    empty.innerText = "Du hast noch keine Freunde hinzugefügt.";
+    container.appendChild(empty);
     return;
   }
 
   currentFriends.forEach((friend) => {
-    const isOnline = friend.isOnline;
-    const div = document.createElement("div");
-    div.className = "friend-item";
-    div.style.display = "flex";
-    div.style.justifyContent = "space-between";
-    div.style.alignItems = "center";
-    div.style.padding = "10px";
-    div.style.background = "rgba(255, 255, 255, 0.05)";
-    div.style.borderRadius = "8px";
+    const isOnline = !!friend.isOnline;
 
-    const statusDot = `<span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: ${isOnline ? "#00e676" : "#555"}; margin-right: 10px;"></span>`;
+    const item = document.createElement("div");
+    item.className = "friend-item";
+    item.style.display = "flex";
+    item.style.justifyContent = "space-between";
+    item.style.alignItems = "center";
+    item.style.padding = "10px";
+    item.style.background = "rgba(255, 255, 255, 0.05)";
+    item.style.borderRadius = "8px";
 
-    div.innerHTML = `
-    <div style="display: flex; align-items: center;">
-      ${statusDot}
-      <strong>${escapeHtml(friend.displayName || friend.username)}</strong>
-    </div>
-    <div>
-      <button onclick="removeFriend('${friend.userId}')" style="background: transparent; border: none; color: #ff3b3b; cursor: pointer;" title="Freund entfernen">✖</button>
-    </div>
-     `;
-    container.appendChild(div);
+    const left = document.createElement("div");
+    left.style.display = "flex";
+    left.style.alignItems = "center";
+    left.style.gap = "10px";
+
+    const avatar = document.createElement("div");
+    avatar.className = "friend-avatar";
+
+    const name = friend.displayName || friend.username || "Unbekannt";
+    renderAvatarElement(avatar, friend.avatarUrl, name);
+
+    const info = document.createElement("div");
+    info.style.display = "flex";
+    info.style.alignContent = "center";
+    info.style.gap = "5px";
+
+    const nameEl = document.createElement("strong");
+    nameEl.innerText = name;
+
+    const statusDot = document.createElement("span");
+    statusDot.style.display = "block";
+    statusDot.style.width = "10px";
+    statusDot.style.height = "10px";
+    statusDot.style.borderRadius = "50%";
+    statusDot.style.backgroundColor = isOnline ? "#00e676" : "#555";
+    statusDot.style.alignSelf = "center";
+
+    info.appendChild(nameEl);
+    info.appendChild(statusDot);
+
+    left.appendChild(avatar);
+    left.appendChild(info);
+
+    const actions = document.createElement("div");
+
+    const removeBtn = document.createElement("button");
+    removeBtn.style.background = "transparent";
+    removeBtn.style.border = "none";
+    removeBtn.style.color = "#ff3b3b";
+    removeBtn.style.cursor = "pointer";
+    removeBtn.title = "Freund entfernen";
+    removeBtn.innerText = "✖";
+    removeBtn.onclick = () => removeFriend(friend.userId);
+
+    actions.appendChild(removeBtn);
+
+    item.appendChild(left);
+    item.appendChild(actions);
+
+    container.appendChild(item);
   });
 }
 
 function renderFriendRequests() {
   const container = document.getElementById("friendRequestsContainer");
   if (!container) return;
+
   container.innerHTML = "";
 
-  if (currentFriendRequests.length === 0) {
-    container.innerHTML = `<p style="opacity: 0.5; text-align: center;">Keine offenen Anfragen.</p>`;
+  if (!currentFriendRequests || currentFriendRequests.length === 0) {
+    const empty = document.createElement("p");
+    empty.style.opacity = "0.5";
+    empty.style.textAlign = "center";
+    empty.innerText = "Keine offenen Anfragen.";
+    container.appendChild(empty);
     return;
   }
 
   currentFriendRequests.forEach((req) => {
-    const div = document.createElement("div");
-    div.className = "friend-item";
-    div.style.display = "flex";
-    div.style.justifyContent = "space-between";
-    div.style.alignItems = "center";
-    div.style.padding = "10px";
-    div.style.background = "rgba(255, 255, 255, 0.05)";
-    div.style.borderRadius = "8px";
+    const item = document.createElement("div");
+    item.className = "friend-item";
+    item.style.display = "flex";
+    item.style.justifyContent = "space-between";
+    item.style.alignItems = "center";
+    item.style.padding = "10px";
+    item.style.background = "rgba(255, 255, 255, 0.05)";
+    item.style.borderRadius = "8px";
+    item.style.gap = "10px";
 
-    div.innerHTML = `
-    <div>
-      <strong>${escapeHtml(req.username)}</strong> möchte dein Freund sein.
-    </div>
-    <div style="display: flex; gap: 5px;">
-      <button class="greenButton" style="padding: 5px 10px; font-size: 0.8rem;" onclick="acceptFriendRequest('${req.userId}')">✔</button>
-      <button class="redButton" style="padding: 5px 10px; font-size: 0.8rem;" onclick="declineFriendRequest('${req.userId}')">✖</button>
-    </div>
-      `;
-    container.appendChild(div);
+    const avatar = document.createElement("div");
+    avatar.className = "friend-avatar";
+    const name = req.displayName || req.username || "Spieler";
+    renderAvatarElement(avatar, req.avatarUrl, name);
+
+    const left = document.createElement("div");
+    left.style.display = "flex";
+    left.style.alignItems = "center";
+    left.style.gap = "10px";
+
+    const text = document.createElement("div");
+    text.innerHTML = `<strong>${escapeHtml(name)}</strong> möchte dein Freund sein.`;
+
+    left.appendChild(avatar);
+    left.appendChild(text);
+
+    const actions = document.createElement("div");
+    actions.style.display = "flex";
+    actions.style.gap = "5px";
+
+    const acceptBtn = document.createElement("button");
+    acceptBtn.className = "greenButton";
+    acceptBtn.style.padding = "5px 10px";
+    acceptBtn.style.fontSize = "0.8rem";
+    acceptBtn.style.border = "0";
+    acceptBtn.style.borderRadius = "50px";
+    acceptBtn.style.boxShadow = "0 10px 20px rgba(0, 0, 0, 0.22)";
+    acceptBtn.style.color = "white";
+    acceptBtn.style.cursor = "pointer";
+    acceptBtn.innerText = "✔";
+    acceptBtn.onclick = () => acceptFriendRequest(req.userId);
+
+    const declineBtn = document.createElement("button");
+    declineBtn.className = "redButton";
+    declineBtn.style.padding = "5px 10px";
+    declineBtn.style.fontSize = "0.8rem";
+    declineBtn.style.border = "0";
+    declineBtn.style.borderRadius = "50px";
+    declineBtn.style.boxShadow = "0 10px 20px rgba(0, 0, 0, 0.22)";
+    declineBtn.style.color = "white";
+    declineBtn.style.cursor = "pointer";
+    declineBtn.innerText = "✖";
+    declineBtn.onclick = () => declineFriendRequest(req.userId);
+
+    actions.appendChild(acceptBtn);
+    actions.appendChild(declineBtn);
+
+    item.appendChild(left);
+    item.appendChild(actions);
+
+    container.appendChild(item);
   });
 }
 

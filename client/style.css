@@ -107,6 +107,7 @@ h3 {
     transform 0.15s ease,
     box-shadow 0.15s ease,
     filter 0.15s ease;
+  cursor: pointer;
 }
 
 #menu button:hover {
@@ -311,7 +312,8 @@ h3 {
 }
 
 .player-avatar,
-.profile-avatar {
+.profile-avatar,
+.friend-avatar {
   flex: 0 0 auto;
   display: flex;
   align-items: center;
@@ -341,6 +343,13 @@ h3 {
   font-size: 2rem;
   border: 2px solid rgba(255, 255, 255, 0.12);
   box-shadow: 0 10px 24px rgba(0, 0, 0, 0.24);
+}
+
+.friend-avatar {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  font-size: 0.75rem;
 }
 
 .player.active {
