@@ -99,19 +99,20 @@ async function getFriendsListData(userId, io) {
           Number(socket.user.userId) === Number(friendId),
       );
 
-      let name = profile?.displayName;
-      if (!name) {
-        const [users] = await pool.execute(
-          `SELECT username FROM users WHERE id = ?`,
-          [friendId],
-        );
-        name = users[0]?.username || "Unbekannt";
-      }
+      let displayName = profile?.displayName;
+
+      const [users] = await pool.execute(
+        `SELECT username FROM users WHERE id = ?`,
+        [friendId],
+      );
+
+      let username = users[0]?.username;
+      if (!displayName) displayName = username || "Unbekannt";
 
       return {
         userId: friendId.toString(),
-        username: name,
-        displayName: name,
+        username: username,
+        displayName: displayName,
         avatarUrl: profile?.avatarUrl || "",
         isOnline,
       };
@@ -122,19 +123,20 @@ async function getFriendsListData(userId, io) {
     requestsIds.map(async (requesterId) => {
       const profile = await getProfile(requesterId);
 
-      let name = profile?.displayName;
-      if (!name) {
-        const [userRows] = await pool.execute(
-          `SELECT username FROM users WHERE id = ?`,
-          [requesterId],
-        );
-        name = userRows[0]?.username || "Unbekannt";
-      }
+      let displayName = profile?.displayName;
+
+      const [userRows] = await pool.execute(
+        `SELECT username FROM users WHERE id = ?`,
+        [requesterId],
+      );
+
+      let username = userRows[0]?.username;
+      if (!displayName) displayName = username || "Unbekannt";
 
       return {
         userId: requesterId.toString(),
-        username: name,
-        displayName: name,
+        username: username,
+        displayName: displayName,
         avatarUrl: profile?.avatarUrl || "",
       };
     }),
