@@ -926,7 +926,7 @@ function renderFriendRequests() {
 
     const avatar = document.createElement("div");
     avatar.className = "friend-avatar";
-    const name = req.displayName || req.username || "Spieler";
+    const name = req.username || req.displayName || "Spieler";
     renderAvatarElement(avatar, req.avatarUrl, name);
 
     const left = document.createElement("div");
