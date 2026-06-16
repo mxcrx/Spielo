@@ -302,7 +302,13 @@ function handleGameEnd(game, winnerId) {
   if (game.winnerId) return;
   game.winnerId = winnerId;
 
+  const onlyOnePlayer = game.players.length === 1;
+
   game.players.forEach((player) => {
+    if (onlyOnePlayer) {
+      player.placement = 2;
+      return;
+    }
     if (player.userId === winnerId) {
       player.placement = 1;
     } else {
