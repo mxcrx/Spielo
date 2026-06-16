@@ -844,6 +844,7 @@ function renderFriendsList() {
     item.style.padding = "10px";
     item.style.background = "rgba(255, 255, 255, 0.05)";
     item.style.borderRadius = "8px";
+    item.style.marginBottom = "10px";
 
     const left = document.createElement("div");
     left.style.display = "flex";
@@ -923,6 +924,7 @@ function renderFriendRequests() {
     item.style.background = "rgba(255, 255, 255, 0.05)";
     item.style.borderRadius = "8px";
     item.style.gap = "10px";
+    item.style.marginBottom = "10px";
 
     const avatar = document.createElement("div");
     avatar.className = "friend-avatar";
