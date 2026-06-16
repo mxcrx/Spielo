@@ -714,6 +714,7 @@ function registerSocket(io, socket) {
       }
 
       socket.emit("profile_update_success", updatedData);
+      notifyFriendsStatusChange(io, userId);
     } catch (err) {
       socket.emit("error_message", "Fehler beim Aktualisieren des Profils.");
     }
