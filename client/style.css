@@ -937,6 +937,13 @@ h3 {
   gap: 10px;
 }
 
+.friend-name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 200px;
+}
+
 @media (max-width: 600px) {
   body {
     padding: 12px;

@@ -863,7 +863,9 @@ function renderFriendsList() {
     info.style.gap = "5px";
 
     const nameEl = document.createElement("strong");
+    nameEl.className = "friend-name";
     nameEl.innerText = name;
+    nameEl.title = name;
 
     const statusDot = document.createElement("span");
     statusDot.style.display = "block";
