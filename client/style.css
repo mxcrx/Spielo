@@ -916,7 +916,7 @@ h3 {
   left: 0;
   right: 0;
   height: 2px;
-  background: #2d7dff;
+  background: #97a8a0;
 }
 
 .badge {
@@ -928,6 +928,14 @@ h3 {
   margin-left: 5px;
 }
 
+.status-dot {
+  display: block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  align-self: center;
+}
+
 .friends-content-area {
   flex: 1;
   overflow-y: auto;
@@ -937,11 +945,44 @@ h3 {
   gap: 10px;
 }
 
+.friend-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  margin-bottom: 10px;
+}
+
 .friend-name {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 200px;
+}
+
+.empty-state {
+  opacity: 0.5;
+  text-align: center;
+}
+
+.remove-friend-btn {
+  background: transparent;
+  border: none;
+  color: #ff3b3b;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.friend-btn {
+  padding: 5px 10px;
+  font-size: 0.8rem;
+  border: 0;
+  border-radius: 50px;
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.22);
+  color: white;
+  cursor: pointer;
 }
 
 @media (max-width: 600px) {

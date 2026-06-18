@@ -826,8 +826,7 @@ function renderFriendsList() {
 
   if (currentFriends.length === 0) {
     const empty = document.createElement("p");
-    empty.style.opacity = "0.5";
-    empty.style.textAlign = "center";
+    empty.className = "empty-state";
     empty.innerText = "Du hast noch keine Freunde hinzugefügt.";
     container.appendChild(empty);
     return;
@@ -838,13 +837,6 @@ function renderFriendsList() {
 
     const item = document.createElement("div");
     item.className = "friend-item";
-    item.style.display = "flex";
-    item.style.justifyContent = "space-between";
-    item.style.alignItems = "center";
-    item.style.padding = "10px";
-    item.style.background = "rgba(255, 255, 255, 0.05)";
-    item.style.borderRadius = "8px";
-    item.style.marginBottom = "10px";
 
     const left = document.createElement("div");
     left.style.display = "flex";
@@ -868,12 +860,8 @@ function renderFriendsList() {
     nameEl.title = name;
 
     const statusDot = document.createElement("span");
-    statusDot.style.display = "block";
-    statusDot.style.width = "10px";
-    statusDot.style.height = "10px";
-    statusDot.style.borderRadius = "50%";
+    statusDot.className = "status-dot";
     statusDot.style.backgroundColor = isOnline ? "#00e676" : "#555";
-    statusDot.style.alignSelf = "center";
 
     info.appendChild(nameEl);
     info.appendChild(statusDot);
@@ -884,10 +872,7 @@ function renderFriendsList() {
     const actions = document.createElement("div");
 
     const removeBtn = document.createElement("button");
-    removeBtn.style.background = "transparent";
-    removeBtn.style.border = "none";
-    removeBtn.style.color = "#ff3b3b";
-    removeBtn.style.cursor = "pointer";
+    removeBtn.className = "remove-friend-btn";
     removeBtn.title = "Freund entfernen";
     removeBtn.innerText = "✖";
     removeBtn.onclick = () => removeFriend(friend.userId);
@@ -909,8 +894,7 @@ function renderFriendRequests() {
 
   if (!currentFriendRequests || currentFriendRequests.length === 0) {
     const empty = document.createElement("p");
-    empty.style.opacity = "0.5";
-    empty.style.textAlign = "center";
+    empty.className = "empty-state";
     empty.innerText = "Keine offenen Anfragen.";
     container.appendChild(empty);
     return;
@@ -919,14 +903,6 @@ function renderFriendRequests() {
   currentFriendRequests.forEach((req) => {
     const item = document.createElement("div");
     item.className = "friend-item";
-    item.style.display = "flex";
-    item.style.justifyContent = "space-between";
-    item.style.alignItems = "center";
-    item.style.padding = "10px";
-    item.style.background = "rgba(255, 255, 255, 0.05)";
-    item.style.borderRadius = "8px";
-    item.style.gap = "10px";
-    item.style.marginBottom = "10px";
 
     const avatar = document.createElement("div");
     avatar.className = "friend-avatar";
@@ -949,26 +925,12 @@ function renderFriendRequests() {
     actions.style.gap = "5px";
 
     const acceptBtn = document.createElement("button");
-    acceptBtn.className = "greenButton";
-    acceptBtn.style.padding = "5px 10px";
-    acceptBtn.style.fontSize = "0.8rem";
-    acceptBtn.style.border = "0";
-    acceptBtn.style.borderRadius = "50px";
-    acceptBtn.style.boxShadow = "0 10px 20px rgba(0, 0, 0, 0.22)";
-    acceptBtn.style.color = "white";
-    acceptBtn.style.cursor = "pointer";
+    acceptBtn.className = "greenButton friend-btn";
     acceptBtn.innerText = "✔";
     acceptBtn.onclick = () => acceptFriendRequest(req.userId);
 
     const declineBtn = document.createElement("button");
-    declineBtn.className = "redButton";
-    declineBtn.style.padding = "5px 10px";
-    declineBtn.style.fontSize = "0.8rem";
-    declineBtn.style.border = "0";
-    declineBtn.style.borderRadius = "50px";
-    declineBtn.style.boxShadow = "0 10px 20px rgba(0, 0, 0, 0.22)";
-    declineBtn.style.color = "white";
-    declineBtn.style.cursor = "pointer";
+    declineBtn.className = "redButton friend-btn";
     declineBtn.innerText = "✖";
     declineBtn.onclick = () => declineFriendRequest(req.userId);
 
