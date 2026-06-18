@@ -52,7 +52,7 @@ function handlePlayCard(game, action) {
   const cardIndex = payload.cardIndex;
 
   if (game.players[game.currentPlayerIndex]?.userId !== playerId) {
-    return { game, error: "Not your turn" };
+    return { game, error: "Du bist nicht am Zug" };
   }
 
   if (game.turnState === "played" || game.turnState === "choosing_color") {
@@ -92,6 +92,7 @@ function handlePlayCard(game, action) {
   };
 
   if (needsColorChoice) {
+    game.previousColor = game.currentColor;
     response.chooseColor = true;
     response.chooseColorReason = card.value;
   } else {
@@ -114,7 +115,7 @@ function handleDrawCard(game, action) {
   const { playerId } = action;
 
   if (game.players[game.currentPlayerIndex]?.userId !== playerId) {
-    return { game, error: "Not your turn" };
+    return { game, error: "Du bist nicht am Zug" };
   }
 
   if (game.turnState !== "idle") {
@@ -148,7 +149,7 @@ function handleEndTurn(game, action) {
   const { playerId } = action;
 
   if (game.players[game.currentPlayerIndex]?.userId !== playerId) {
-    return { game, error: "Not your turn" };
+    return { game, error: "Du bist nicht am Zug" };
   }
 
   if (game.turnState === "choosing_color") {
@@ -173,11 +174,11 @@ function handleChooseColor(game, action) {
   const { color } = payload;
 
   if (game.players[game.currentPlayerIndex]?.userId !== playerId) {
-    return { game, error: "Not your turn" };
+    return { game, error: "Du bist nicht am Zug" };
   }
 
   if (game.turnState !== "choosing_color") {
-    return { game, error: "Not your turn" };
+    return { game, error: "Du bist nicht am Zug" };
   }
 
   game.currentColor = color;
@@ -275,6 +276,42 @@ function handleChallengeUno(game, action) {
   return { game, error: "Niemand hat vergessen, UNO zu rufen!" };
 }
 
+function handleCancelColorChoice(game, action) {
+  const { playerId } = action;
+
+  if (game.players[game.currentPlayerIndex]?.userId !== playerId) {
+    return { game, error: "Du bist nicht am Zug" };
+  }
+
+  if (game.turnState !== "choosing_color") {
+    return { game, error: "Du bist nicht am Zug" };
+  }
+
+  const cancelledCard = game.discardPile.pop();
+
+  if (cancelledCard) {
+    if (!game.hands[playerId]) game.hands[playerId] = [];
+    game.hands[playerId].push(cancelledCard);
+
+    if (cancelledCard.value === "+4") {
+      game.pendingDraw -= 4;
+    }
+
+    if (game.previousColor) {
+      game.currentColor = game.previousColor;
+      delete game.previousColor;
+    }
+  }
+
+  game.turnState = "idle";
+  game.lastActionAt = Date.now();
+
+  return {
+    game,
+    gameUpdated: true,
+  };
+}
+
 function processAction(game, action = {}) {
   switch (action.type) {
     case "PLAY_CARD":
@@ -294,6 +331,9 @@ function processAction(game, action = {}) {
 
     case "CALL_UNO":
       return handleCallUno(game, action);
+
+    case "CANCEL_COLOR_CHOICE":
+      return handleCancelColorChoice(game, action);
 
     default:
       return { game, error: "Unknown action" };

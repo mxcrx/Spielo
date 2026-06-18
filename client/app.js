@@ -487,6 +487,12 @@ function selectColor(color) {
   sendGameAction("CHOOSE_COLOR", { color });
 }
 
+function cancelColorChoice() {
+  document.getElementById("colorPicker").style.display = "none";
+
+  sendGameAction("CANCEL_COLOR_CHOICE", {});
+}
+
 function showWinner(winner) {
   const banner = document.getElementById("winnerBanner");
   if (!banner) return;

@@ -368,16 +368,39 @@ h3 {
 
 .color-picker {
   display: none;
+  flex-direction: column;
+  align-items: center;
   position: fixed;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
   background: rgba(20, 20, 20, 0.95);
-  padding: 20px;
+  padding: 15px;
   border-radius: 16px;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
-  gap: 15px;
+  gap: 5px;
   z-index: 999;
+}
+
+.color-options {
+  display: flex;
+  gap: 15px;
+}
+
+.cancel-btn {
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 22px;
+  cursor: pointer;
+  transition:
+    color 0.2s,
+    transform 0.2s;
+}
+
+.cancel-btn:hover {
+  color: #fff;
+  transform: scale(1.1);
 }
 
 .color-btn {

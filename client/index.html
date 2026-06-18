@@ -105,13 +105,20 @@
       </div>
 
       <div id="colorPicker" class="color-picker">
-        <button onclick="selectColor('red')" class="color-btn red"></button>
-        <button onclick="selectColor('blue')" class="color-btn blue"></button>
-        <button onclick="selectColor('green')" class="color-btn green"></button>
-        <button
-          onclick="selectColor('yellow')"
-          class="color-btn yellow"
-        ></button>
+        <div class="color-options">
+          <button onclick="selectColor('red')" class="color-btn red"></button>
+          <button onclick="selectColor('blue')" class="color-btn blue"></button>
+          <button
+            onclick="selectColor('green')"
+            class="color-btn green"
+          ></button>
+          <button
+            onclick="selectColor('yellow')"
+            class="color-btn yellow"
+          ></button>
+        </div>
+
+        <button onclick="cancelColorChoice()" class="cancel-btn">✕</button>
       </div>
 
       <h3>Oberste Karte</h3>
