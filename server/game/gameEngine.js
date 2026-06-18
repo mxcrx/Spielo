@@ -106,6 +106,7 @@ function handlePlayCard(game, action) {
   }
 
   game.lastActionAt = Date.now();
+
   return response;
 }
 
@@ -213,6 +214,7 @@ function handleChooseColor(game, action) {
   }
 
   game.turnState = "idle";
+  game.lastActionAt = Date.now();
 
   return {
     game,
@@ -223,7 +225,7 @@ function handleChooseColor(game, action) {
 
 function handleCallUno(game, action) {
   const now = Date.now();
-  const GRACE_PERIOD_MS = 1000;
+  const GRACE_PERIOD_MS = 1500;
 
   const hand = game.hands[action.playerId] || [];
 
@@ -245,7 +247,7 @@ function handleCallUno(game, action) {
 
 function handleChallengeUno(game, action) {
   const now = Date.now();
-  const GRACE_PERIOD_MS = 1000;
+  const GRACE_PERIOD_MS = 1500;
 
   if (game.lastActionAt && now - game.lastActionAt < GRACE_PERIOD_MS) {
     return { game, error: "Du musst noch kurz warten!" };
