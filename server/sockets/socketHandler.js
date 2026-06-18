@@ -357,6 +357,7 @@ function registerSocket(io, socket) {
         "error_message",
         "Ein serverseitiger Fehler ist aufgetreten.",
       );
+      console.error("Login error:", error);
     }
   });
 
@@ -405,8 +406,9 @@ function registerSocket(io, socket) {
     } catch (error) {
       socket.emit(
         "error_message",
-        error.message || "Fehler bei der Registrierung.",
+        "Ein serverseitiger Fehler ist aufgetreten.",
       );
+      console.error("Register error:", error);
     }
   });
 
