@@ -120,6 +120,12 @@ h3 {
   transform: translateY(1px) scale(0.99);
 }
 
+.or-divider {
+  margin: 10px 0;
+  text-align: center;
+  opacity: 0.5;
+}
+
 .greenButton {
   background: linear-gradient(135deg, #2ecc71 0%, #1f9f57 100%);
 }
@@ -1008,7 +1014,14 @@ h3 {
 
   #menu input,
   #menu button {
-    flex: 1 1 100%;
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+    margin-bottom: 10px;
+  }
+
+  .or-divider {
+    width: 100%;
   }
 
   .turn-indicator {
