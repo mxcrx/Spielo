@@ -177,6 +177,7 @@ socket.on("game_updated", (data) => {
 });
 
 socket.on("game_over", (data) => {
+  document.getElementById("colorPicker").style.display = "none";
   showWinner(data.winner);
 
   showStatus("Spiel beendet");
