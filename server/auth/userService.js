@@ -43,7 +43,31 @@ async function login(username, password) {
   return null;
 }
 
+async function updateUser(userId, newRole, isBanned) {
+  try {
+    await pool.execute(
+      `UPDATE users SET role = ?, is_banned = ? WHERE id = ?`,
+      [newRole, isBanned ? 1 : 0, userId],
+    );
+  } catch (err) {
+    throw err;
+  }
+}
+
+async function getAllUsers() {
+  try {
+    const [users] = await pool.execute(
+      `SELECT id, username, role, is_banned, created_at FROM users ORDER BY created_at ASC`,
+    );
+    return users;
+  } catch (err) {
+    throw err;
+  }
+}
+
 module.exports = {
   createUser,
   login,
+  updateUser,
+  getAllUsers,
 };

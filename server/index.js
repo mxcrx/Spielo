@@ -19,9 +19,17 @@ app.use(createHttpRateLimiter({ limit: config.httpRateLimit }));
 app.use(express.json({ limit: "16kb" }));
 app.use(express.urlencoded({ extended: false, limit: "16kb" }));
 app.use(express.static(path.join(__dirname, "..", "client")));
+app.use(
+  "/admin",
+  express.static(path.join(__dirname, "..", "client", "admin")),
+);
 
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "..", "client", "index.html"));
+});
+
+app.get("/admin", (req, res) => {
+  res.sendFile(path.join(__dirname, "..", "client", "admin", "index.html"));
 });
 
 function startServer(port) {

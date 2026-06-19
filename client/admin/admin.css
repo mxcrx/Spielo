@@ -1,0 +1,101 @@
+body {
+  padding: 40px 20px;
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+.admin-box {
+  background: rgba(20, 24, 30, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 30px;
+  border-radius: 16px;
+}
+
+#adminLogin {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+}
+
+th,
+td {
+  padding: 12px;
+  text-align: center;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+th {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+td button {
+  margin-right: 8px;
+}
+
+#adminStatus {
+  margin-top: 15px;
+  color: #ff3b3b;
+}
+
+.dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.dashboard-content {
+  display: flex;
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+.dashboard-content input {
+  flex: 1;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 12px;
+  color: white;
+  outline: none;
+  border-radius: 8px;
+}
+
+.dashboard-table {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 0 20px 5px;
+}
+
+body button {
+  height: 42px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 12px;
+  color: white;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.22);
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease,
+    filter 0.15s ease;
+  cursor: pointer;
+}
+
+body button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 14px 26px rgba(0, 0, 0, 0.28);
+  filter: brightness(1.06);
+}
+
+body button:active {
+  transform: translateY(1px) scale(0.99);
+}

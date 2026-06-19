@@ -26,7 +26,12 @@ const {
   isPlainObject,
 } = require("../utils/inputValidation");
 const { createToken, verifyToken } = require("../auth/jwtService");
-const { login, createUser } = require("../auth/userService");
+const {
+  login,
+  createUser,
+  updateUser,
+  getAllUsers,
+} = require("../auth/userService");
 const { getProfile, updateProfile } = require("../profile/profileService");
 const {
   sendFriendRequest,
@@ -905,6 +910,37 @@ function registerSocket(io, socket) {
       console.error("Error sending friend invite:", err);
     }
   });
-}
 
+  socket.on("admin_get_users", async () => {
+    if (socket.user?.role !== "admin") return;
+
+    try {
+      const users = await getAllUsers();
+      socket.emit("admin_users_data", users);
+    } catch (err) {
+      socket.emit("admin_message", "Fehler beim Laden der Benutzerdaten.");
+    }
+  });
+
+  socket.on("admin_update_user", async (data) => {
+    if (socket.user?.role !== "admin") return;
+
+    try {
+      if (Number(data.userId) === Number(socket.user.userId)) {
+        return socket.emit(
+          "admin_message",
+          "Du kannst deinen eigenen Account nicht bearbeiten.",
+        );
+      }
+
+      await updateUser(data.userId, data.role, data.is_banned);
+
+      const users = await getAllUsers();
+      socket.emit("admin_users_data", users);
+      socket.emit("admin_message", "Benutzer erfolgreich aktualisiert.");
+    } catch (err) {
+      socket.emit("admin_message", "Fehler beim Aktualisieren des Benutzers.");
+    }
+  });
+}
 module.exports = { registerSocket };

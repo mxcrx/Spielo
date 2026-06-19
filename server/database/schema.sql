@@ -7,7 +7,9 @@ CREATE TABLE IF NOT EXISTS users (
 
     role ENUM('admin', 'user') DEFAULT 'user',
 
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    is_banned BOOLEAN DEFAULT FALSE
 );
 
 CREATE TABLE IF NOT EXISTS matches (
@@ -54,8 +56,12 @@ CREATE TABLE IF NOT EXISTS profiles (
 
 CREATE TABLE IF NOT EXISTS friends (
     id INT AUTO_INCREMENT PRIMARY KEY,
+
     requester_id INT NOT NULL,
+
     receiver_id INT NOT NULL,
+
     status ENUM('pending', 'accepted', 'blocked') DEFAULT 'pending',
+
     UNIQUE KEY unique_friendship (requester_id, receiver_id)
 );

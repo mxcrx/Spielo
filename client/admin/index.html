@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Spielo - Admin Panel</title>
+    <link rel="stylesheet" href="../style.css" />
+    <link rel="stylesheet" href="admin.css" />
+  </head>
+
+  <body>
+    <div id="adminLogin" class="admin-box">
+      <h2>Admin Login</h2>
+      <p>Klicke auf den Button, um dich als Admin anzumelden.</p>
+      <button class="blueButton" onclick="verifyAdmin()">
+        Als Admin verbinden
+      </button>
+      <p id="adminStatus"></p>
+    </div>
+
+    <div id="adminDashboard" class="admin-box" style="display: none">
+      <div class="dashboard-header">
+        <h2>Admin Dashboard</h2>
+        <button class="redButton" onclick="logoutAdmin()">Abmelden</button>
+      </div>
+
+      <div class="dashboard-content">
+        <input
+          type="text"
+          id="adminSearchInput"
+          placeholder="Nutzer nach Name oder ID suchen..."
+          onkeyup="filterAdminUsers()"
+        />
+      </div>
+
+      <div class="dashboard-table">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Username</th>
+              <th>Rolle</th>
+              <th>Status</th>
+              <th>Aktionen</th>
+            </tr>
+          </thead>
+          <tbody id="adminUserTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <script src="admin.js"></script>
+  </body>
+</html>
