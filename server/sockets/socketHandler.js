@@ -45,6 +45,7 @@ const checkAuthAttempt = createSocketAuthLimiter({
   limit: config.socketAuthLimit,
 });
 const checkChatSpam = createChatRateLimiter({ limit: 5, windowMs: 10000 });
+const checkInviteSpam = createChatRateLimiter({ limit: 3, windowMs: 5000 });
 
 function emitInvalidInput(socket, message) {
   socket.emit("error_message", message);
@@ -841,6 +842,14 @@ function registerSocket(io, socket) {
 
   socket.on("invite_friend", async (friendId) => {
     if (!socket.user?.userId || isNaN(Number(socket.user.userId))) return;
+
+    const spamCheck = checkInviteSpam(socket);
+    if (!spamCheck.allowed) {
+      return socket.emit("friend_action_result", {
+        success: false,
+        text: "Bitte warte kurz, bevor du weitere Einladungen sendest.",
+      });
+    }
 
     try {
       const activeRoom = getRoomByUserId(socket.user.userId);
