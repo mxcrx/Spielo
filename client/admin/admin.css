@@ -2,6 +2,8 @@ body {
   padding: 40px 20px;
   max-width: 1000px;
   margin: 0 auto;
+  height: auto;
+  overflow-y: auto;
 }
 
 .admin-box {
@@ -72,6 +74,7 @@ td button {
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 12px;
   padding: 0 20px 5px;
+  overflow-x: auto;
 }
 
 body button {
