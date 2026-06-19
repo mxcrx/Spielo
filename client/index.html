@@ -10,6 +10,7 @@
     <div id="winnerBanner" class="winner-banner" hidden></div>
 
     <h2 id="status">Verbinde zum Server...</h2>
+    <div id="inviteToastConatiner" class="toast-container" hidden></div>
 
     <div id="loginScreen" class="screen">
       <div id="menu" class="login-menu">
@@ -72,6 +73,13 @@
         </p>
         <button class="greenButton" id="startGameButton" onclick="startGame()">
           Spiel starten
+        </button>
+        <button
+          class="blueButton"
+          id="friendInviteButton"
+          onclick="toggleFriendsMenu()"
+        >
+          Freunde
         </button>
         <button class="redButton" onclick="leaveRoom()">Raum verlassen</button>
       </div>

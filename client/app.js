@@ -275,6 +275,10 @@ socket.on("friend_action_result", (msg) => {
   showStatus(msg.text, msg.success ? "green" : "red");
 });
 
+socket.on("friend_invite", (data) => {
+  showInviteToast(data.inviterName, data.roomId);
+});
+
 function createRoom() {
   socket.emit("create_room");
 }
@@ -533,9 +537,11 @@ function toggleRoomHostUi(room) {
   const isHost = room?.host === myUserId;
   const startButton = document.getElementById("startGameButton");
   const startHint = document.getElementById("roomStartHint");
+  const friendButton = document.getElementById("friendInviteButton");
 
   if (startButton) startButton.hidden = !isHost;
   if (startHint) startHint.hidden = !isHost;
+  if (friendButton) friendButton.hidden = !isHost;
 }
 
 function updateTurnIndicator(currentPlayerId) {
@@ -877,6 +883,20 @@ function renderFriendsList() {
     left.appendChild(info);
 
     const actions = document.createElement("div");
+    actions.style.display = "flex";
+    actions.style.gap = "5px";
+
+    if (isOnline && currentRoom) {
+      const inviteBtn = document.createElement("button");
+      inviteBtn.className = "blueButton friend-btn";
+      inviteBtn.title = "Zum Spiel einladen";
+      inviteBtn.innerText = "Einladen";
+      inviteBtn.onclick = () => {
+        if (!currentRoom) return;
+        socket.emit("invite_friend", friend.userId);
+      };
+      actions.appendChild(inviteBtn);
+    }
 
     const removeBtn = document.createElement("button");
     removeBtn.className = "remove-friend-btn";
@@ -962,6 +982,39 @@ function updateRequestBadge() {
   } else {
     badge.hidden = true;
   }
+}
+
+function showInviteToast(inviterName, roomId) {
+  const container = document.getElementById("inviteToastConatiner");
+  if (!container) return;
+
+  const toast = document.createElement("div");
+  toast.className = "invite-toast";
+  toast.innerHTML = `
+    <p style="margin: 0 0 10px 0;"><strong>${escapeHtml(inviterName)}</strong> lädt dich ein!<br>
+    <span style="opacity: 0.7; font-size: 0.9em;">Raum: ${escapeHtml(roomId)}</span></p>
+    <div style="display:flex; gap:10px;">
+        <button class="greenButton friend-btn" onclick="acceptInvite('${escapeHtml(roomId)}', this)">Annehmen</button>
+        <button class="redButton friend-btn" onclick="this.parentElement.parentElement.remove()">Ablehnen</button>
+    </div>
+  `;
+
+  container.appendChild(toast);
+
+  setTimeout(() => {
+    if (toast.parentElement) toast.remove();
+  }, 15000);
+}
+
+function acceptInvite(roomId, btnElement) {
+  btnElement.parentElement.parentElement.remove();
+
+  if (isFriendsMenuOpen) toggleFriendsMenu();
+
+  const roomInput = document.getElementById("roomInput");
+  if (roomInput) roomInput.value = roomId;
+
+  joinRoom();
 }
 
 document.addEventListener("DOMContentLoaded", () => {

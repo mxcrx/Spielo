@@ -838,6 +838,64 @@ function registerSocket(io, socket) {
       socket.emit("error_message", err.message);
     }
   });
+
+  socket.on("invite_friend", async (friendId) => {
+    if (!socket.user?.userId || isNaN(Number(socket.user.userId))) return;
+
+    try {
+      const activeRoom = getRoomByUserId(socket.user.userId);
+      if (!activeRoom) {
+        return socket.emit("friend_action_result", {
+          success: false,
+          text: "Du musst in einem Raum sein, um Freunde einzuladen.",
+        });
+      }
+
+      const targetSockets = Array.from(io.sockets.sockets.values()).filter(
+        (socket) =>
+          socket.user && Number(socket.user.userId) === Number(friendId),
+      );
+
+      if (targetSockets.length === 0) {
+        return socket.emit("friend_action_result", {
+          success: false,
+          text: "Dieser Freund ist momentan offline.",
+        });
+      }
+
+      if (
+        targetSockets.some(
+          (socket) => getRoomByUserId(socket.user.userId)?.id === activeRoom.id,
+        )
+      ) {
+        return socket.emit("friend_action_result", {
+          success: false,
+          text: "Dieser Freund ist bereits in deinem Raum.",
+        });
+      }
+
+      const profile = await getProfile(socket.user.userId);
+      const inviterName = profile?.displayName || socket.user.username;
+
+      for (const targetSocket of targetSockets) {
+        targetSocket.emit("friend_invite", {
+          inviterId: socket.user.userId,
+          inviterName,
+          roomId: activeRoom.id,
+        });
+      }
+      socket.emit("friend_action_result", {
+        success: true,
+        text: "Einladung erfolgreich gesendet.",
+      });
+    } catch (err) {
+      socket.emit("friend_action_result", {
+        success: false,
+        text: "Fehler beim Senden der Einladung.",
+      });
+      console.error("Error sending friend invite:", err);
+    }
+  });
 }
 
 module.exports = { registerSocket };
