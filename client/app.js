@@ -985,7 +985,7 @@ function updateRequestBadge() {
 }
 
 function showInviteToast(inviterName, roomId) {
-  const container = document.getElementById("inviteToastConatiner");
+  const container = document.getElementById("inviteToastContainer");
   if (!container) return;
 
   const toast = document.createElement("div");
