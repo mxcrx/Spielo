@@ -37,10 +37,13 @@ async function login(username, password) {
   const user = rows[0];
   const valid = await bcrypt.compare(password, user.password_hash);
 
-  if (valid) {
-    return { id: user.id, username: user.username, role: user.role };
+  if (!valid) return null;
+
+  if (user.is_banned === 1 || user.is_banned === true) {
+    throw new Error("Dein Account wurde dauerhaft gesperrt.");
   }
-  return null;
+
+  return { id: user.id, username: user.username, role: user.role };
 }
 
 async function updateUser(userId, newRole, isBanned) {
@@ -65,9 +68,29 @@ async function getAllUsers() {
   }
 }
 
+async function getBannedStatus(userId) {
+  try {
+    const [rows] = await pool.execute(
+      `SELECT is_banned FROM users WHERE id = ?`,
+      [userId],
+    );
+
+    if (
+      rows.length > 0 &&
+      (rows[0].is_banned === 1 || rows[0].is_banned === true)
+    ) {
+      return true;
+    }
+    return false;
+  } catch (err) {
+    throw err;
+  }
+}
+
 module.exports = {
   createUser,
   login,
   updateUser,
   getAllUsers,
+  getBannedStatus,
 };

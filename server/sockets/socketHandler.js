@@ -31,6 +31,7 @@ const {
   createUser,
   updateUser,
   getAllUsers,
+  getBannedStatus,
 } = require("../auth/userService");
 const { getProfile, updateProfile } = require("../profile/profileService");
 const {
@@ -241,19 +242,32 @@ function registerSocket(io, socket) {
 
     const decoded = verifyToken(normalizedToken);
     if (decoded) {
-      socket.user = {
-        userId: decoded.userId,
-        username: decoded.username,
-        role: decoded.role,
-        socketId: socket.id,
-      };
+      try {
+        const isBanned = await getBannedStatus(decoded.userId);
+        if (isBanned) {
+          return socket.emit(
+            "auth_failed",
+            "Dein Account wurde dauerhaft gesperrt.",
+          );
+        }
 
-      socket.emit("auth_success", {
-        ...socket.user,
-        currentRoomId: getRoomByUserId(socket.user.userId)?.id || null,
-      });
-      restoreRoomState(io, socket);
-      notifyFriendsStatusChange(io, socket.user.userId);
+        socket.user = {
+          userId: decoded.userId,
+          username: decoded.username,
+          role: decoded.role,
+          socketId: socket.id,
+        };
+
+        socket.emit("auth_success", {
+          ...socket.user,
+          currentRoomId: getRoomByUserId(socket.user.userId)?.id || null,
+        });
+        restoreRoomState(io, socket);
+        notifyFriendsStatusChange(io, socket.user.userId);
+      } catch (err) {
+        console.error("Error during token auth:", err);
+        socket.emit("auth_failed", "Fehler bei der Authentifizierung.");
+      }
     } else {
       socket.emit("auth_failed", "Sitzung abgelaufen. Bitte neu anmelden.");
     }
@@ -359,11 +373,15 @@ function registerSocket(io, socket) {
         socket.emit("error_message", "Falscher Benutzername oder Passwort.");
       }
     } catch (error) {
-      socket.emit(
-        "error_message",
-        "Ein serverseitiger Fehler ist aufgetreten.",
-      );
-      console.error("Login error:", error);
+      if (error.message === "Dein Account wurde dauerhaft gesperrt.") {
+        socket.emit("error_message", error.message);
+      } else {
+        socket.emit(
+          "error_message",
+          "Ein serverseitiger Fehler ist aufgetreten.",
+        );
+        console.error("Login error:", error);
+      }
     }
   });
 
@@ -410,11 +428,15 @@ function registerSocket(io, socket) {
       restoreRoomState(io, socket);
       notifyFriendsStatusChange(io, socket.user.userId);
     } catch (error) {
-      socket.emit(
-        "error_message",
-        "Ein serverseitiger Fehler ist aufgetreten.",
-      );
-      console.error("Register error:", error);
+      if (error.message === "Dieser Benutzername ist bereits vergeben,") {
+        socket.emit("error_message", error.message);
+      } else {
+        socket.emit(
+          "error_message",
+          "Ein serverseitiger Fehler ist aufgetreten.",
+        );
+        console.error("Register error:", error);
+      }
     }
   });
 
