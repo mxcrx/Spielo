@@ -11,7 +11,7 @@
 
 <br />
 
-## [👉 CLICK HERE FOR LIVE DEMO 👈](https://spielo.mxcrx.de/)
+## [👉 CLICK HERE FOR LIVE DEMO 👈](https://test.spielo.mxcrx.de/)
 
 <br />
 
