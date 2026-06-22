@@ -33,7 +33,11 @@ const {
   getAllUsers,
   getBannedStatus,
 } = require("../auth/userService");
-const { getProfile, updateProfile } = require("../profile/profileService");
+const {
+  getProfile,
+  updateProfile,
+  getLeaderboard,
+} = require("../profile/profileService");
 const {
   sendFriendRequest,
   acceptFriendRequest,
@@ -975,6 +979,16 @@ function registerSocket(io, socket) {
       socket.emit("admin_message", "Benutzer erfolgreich aktualisiert.");
     } catch (err) {
       socket.emit("admin_message", "Fehler beim Aktualisieren des Benutzers.");
+    }
+  });
+
+  socket.on("get_leaderboard", async () => {
+    try {
+      const topPlayers = await getLeaderboard();
+      socket.emit("leaderboard_data", topPlayers);
+    } catch (err) {
+      console.error("Leaderboard error:", err);
+      socket.emit("error_message", "Fehler beim Laden der Bestenliste.");
     }
   });
 }

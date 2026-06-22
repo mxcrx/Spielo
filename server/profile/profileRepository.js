@@ -68,7 +68,16 @@ async function updateUserProfile(userId, displayName, bio, avatarUrl) {
   return { displayName, bio, avatarUrl };
 }
 
+async function getLeaderboard() {
+  const [rows] = await pool.execute(`
+    SELECT u.id as userId, COALESCE(p.display_name, u.username) as displayName, COUNT(mp.id) as wins FROM users u LEFT JOIN profiles p ON u.id = p.user_id JOIN match_players mp ON u.id = mp.user_id WHERE mp.placement = 1 GROUP BY u.id ORDER BY wins DESC LIMIT 10
+    `);
+
+  return rows;
+}
+
 module.exports = {
   getUserProfileData,
   updateUserProfile,
+  getLeaderboard,
 };

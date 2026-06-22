@@ -30,6 +30,7 @@ function showScreen(screenId) {
     "roomScreen",
     "gameScreen",
     "profileScreen",
+    "leaderboardScreen",
   ];
   currentScreen = screenId;
   screens.forEach((id) => {
@@ -50,7 +51,8 @@ function showScreen(screenId) {
     playersContainer.hidden =
       screenId === "loginScreen" ||
       screenId === "lobbyScreen" ||
-      screenId === "profileScreen";
+      screenId === "profileScreen" ||
+      screenId === "leaderboardScreen";
   }
 }
 
@@ -287,6 +289,39 @@ socket.on("friend_invite", (data) => {
   showInviteToast(data.inviterName, data.roomId);
 });
 
+socket.on("leaderboard_data", (data) => {
+  const tbody = document.getElementById("leaderboardTableBody");
+  if (!tbody) return;
+
+  tbody.innerHTML = "";
+
+  if (data.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="3" class="text-center opacity-50">Noch keine Spiele gespielt.</td></tr>`;
+  } else {
+    data.forEach((player, index) => {
+      let rankDisplay = index + 1;
+      if (index === 0) rankDisplay = "🥇";
+      else if (index === 1) rankDisplay = "🥈";
+      else if (index === 2) rankDisplay = "🥉";
+
+      const tr = document.createElement("tr");
+      tr.className = "leaderboard-row";
+
+      tr.innerHTML = `
+        <td class="rank-col" ${index < 3 ? "top-rank" : ""}>${rankDisplay}</td>
+        <td>
+          <span class="leaderboard-player-link" onclick="loadAndShowProfile('${player.userId}')">
+            ${escapeHtml(player.displayName)}
+          </span>
+        </td>
+        <td class="wins-col text-right">${player.wins}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  showScreen("leaderboardScreen");
+});
 function createRoom() {
   socket.emit("create_room");
 }
@@ -1035,6 +1070,10 @@ function acceptInvite(roomId, btnElement) {
   if (roomInput) roomInput.value = roomId;
 
   joinRoom();
+}
+
+function showLeaderboard() {
+  socket.emit("get_leaderboard");
 }
 
 document.addEventListener("DOMContentLoaded", () => {

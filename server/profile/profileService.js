@@ -45,7 +45,21 @@ async function updateProfile(userId, displayName, bio, avatarUrl) {
   }
 }
 
+async function getLeaderboard() {
+  try {
+    const leaderboard = await profileRepository.getLeaderboard();
+    return leaderboard;
+  } catch (error) {
+    console.error(
+      "[Profile Service] Fehler beim Laden der Bestenliste:",
+      error,
+    );
+    throw error;
+  }
+}
+
 module.exports = {
   getProfile,
   updateProfile,
+  getLeaderboard,
 };

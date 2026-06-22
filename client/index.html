@@ -49,8 +49,13 @@
         <button class="yellowButton" onclick="loadAndShowProfile()">
           Mein Profil
         </button>
+
         <button class="blueButton" onclick="toggleFriendsMenu()">
           Freunde
+        </button>
+
+        <button class="orangeButton" onclick="showLeaderboard()">
+          Bestenliste
         </button>
       </div>
     </div>
@@ -238,6 +243,30 @@
         >
           Zurück zur Lobby
         </button>
+      </div>
+    </div>
+
+    <div id="leaderboardScreen" class="screen" hidden>
+      <div class="leaderboard-container">
+        <div class="leaderboard-header">
+          <h2>Bestenliste</h2>
+          <button class="redButton" onclick="showScreen('lobbyScreen')">
+            Zurück
+          </button>
+        </div>
+
+        <div class="leaderboard-card">
+          <table class="leaderboard-table">
+            <thead>
+              <tr>
+                <th>Platz</th>
+                <th>Spieler</th>
+                <th class="text-right">Siege</th>
+              </tr>
+            </thead>
+            <tbody id="leaderboardTableBody"></tbody>
+          </table>
+        </div>
       </div>
     </div>
 
