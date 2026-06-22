@@ -232,6 +232,12 @@ socket.on("profile_data", (data) => {
   document.getElementById("profMemberSince").innerText =
     date.toLocaleDateString("de-DE");
 
+  const profileScreen = document.getElementById("profileScreen");
+  const isOwn = profileScreen?.dataset.isOwn === "true";
+
+  const editBtn = document.getElementById("editProfileButton");
+  if (editBtn) editBtn.hidden = !isOwn;
+
   showScreen("profileScreen");
 });
 
@@ -667,8 +673,15 @@ function logout() {
 function loadAndShowProfile(userId = null) {
   const idToLoad = userId || myUserId;
   if (!idToLoad) return;
+  const isOwnProfile = String(idToLoad) === String(myUserId);
+
+  const profileScreen = document.getElementById("profileScreen");
+  if (profileScreen) {
+    profileScreen.dataset.isOwn = isOwnProfile ? "true" : "false";
+  }
 
   socket.emit("get_profile", idToLoad);
+  if (isFriendsMenuOpen) toggleFriendsMenu();
 }
 
 function toggleProfileEdit(idEditing) {
@@ -851,6 +864,9 @@ function renderFriendsList() {
     const isOnline = !!friend.isOnline;
 
     const item = document.createElement("div");
+    item.onclick = () => loadAndShowProfile(friend.userId);
+    item.style.cursor = "pointer";
+    item.title = "Profil anzeigen";
     item.className = "friend-item";
 
     const left = document.createElement("div");
