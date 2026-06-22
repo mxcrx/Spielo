@@ -864,10 +864,12 @@ function renderFriendsList() {
     const isOnline = !!friend.isOnline;
 
     const item = document.createElement("div");
-    item.onclick = () => loadAndShowProfile(friend.userId);
-    item.style.cursor = "pointer";
-    item.title = "Profil anzeigen";
     item.className = "friend-item";
+    if (!currentRoom) {
+      item.onclick = () => loadAndShowProfile(friend.userId);
+      item.style.cursor = "pointer";
+      item.title = "Profil anzeigen";
+    }
 
     const left = document.createElement("div");
     left.style.display = "flex";
