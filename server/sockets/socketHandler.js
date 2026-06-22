@@ -956,6 +956,19 @@ function registerSocket(io, socket) {
       }
 
       await updateUser(data.userId, data.role, data.is_banned);
+      if (data.is_banned) {
+        const targetSockets = Array.from(io.sockets.sockets.values()).filter(
+          (socket) =>
+            socket.user && Number(socket.user.userId) === Number(data.userId),
+        );
+
+        for (const targetSocket of targetSockets) {
+          targetSocket.emit(
+            "auth_failed",
+            "Dein Account wurde dauerhaft gesperrt.",
+          );
+        }
+      }
 
       const users = await getAllUsers();
       socket.emit("admin_users_data", users);

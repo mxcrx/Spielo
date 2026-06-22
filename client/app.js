@@ -74,6 +74,8 @@ socket.on("auth_failed", (msg) => {
   localStorage.removeItem("spielo_token");
   showScreen("loginScreen");
   showStatus(msg, "orange");
+  document.getElementById("usernameInput").value = "";
+  document.getElementById("passwordInput").value = "";
 });
 
 socket.on("login_success", (payload) => {
