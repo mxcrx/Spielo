@@ -619,6 +619,7 @@ function registerSocket(io, socket) {
         currentPlayer:
           result.currentPlayer ||
           room.game.players[room.game.currentPlayerIndex].userId,
+        sixSeven: result.sixSeven || false,
       });
     }
 

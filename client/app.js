@@ -178,6 +178,7 @@ socket.on("game_updated", (data) => {
   renderPlayersList(currentGame.players, currentPlayerId, currentGame.hands);
   updateTurnIndicator(currentPlayerId);
   updateUnoButtons();
+  if (data.sixSeven) renderSixSevenEffect();
 });
 
 socket.on("game_over", (data) => {
@@ -322,6 +323,7 @@ socket.on("leaderboard_data", (data) => {
 
   showScreen("leaderboardScreen");
 });
+
 function createRoom() {
   socket.emit("create_room");
 }
@@ -420,6 +422,40 @@ function renderTopCard(card) {
 
   document.getElementById("topCard").innerHTML =
     `<div class="card ${color || ""} ${extraClass} ${requiredColorClass}" style="${requiredColorStyle}">${getCardMarkup(card)}</div>`;
+}
+
+function renderSixSevenEffect() {
+  const overlay = document.createElement("div");
+  overlay.className = "sixseven-combo-overlay";
+  document.body.appendChild(overlay);
+
+  const card6 = document.createElement("div");
+  card6.className = "sixseven-anim-card card-6";
+  card6.innerText = "6";
+
+  const card7 = document.createElement("div");
+  card7.className = "sixseven-anim-card card-7";
+  card7.innerText = "7";
+
+  overlay.appendChild(card6);
+  overlay.appendChild(card7);
+
+  setTimeout(() => {
+    card6.remove();
+    card7.remove();
+
+    const logo67 = document.createElement("div");
+    logo67.className = "sixseven-big-logo";
+    logo67.innerText = "67";
+    overlay.appendChild(logo67);
+  }, 600);
+
+  setTimeout(() => {
+    overlay.style.opacity = "0";
+    setTimeout(() => {
+      overlay.remove();
+    }, 500);
+  }, 1500);
 }
 
 function getCardClassName(card) {

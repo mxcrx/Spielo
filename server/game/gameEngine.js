@@ -59,6 +59,7 @@ function handlePlayCard(game, action) {
     return { game, error: "Du hast diesen Zug bereits abgeschlossen" };
   }
 
+  const topCard = game.discardPile.at(-1);
   const result = playCard(game, playerId, cardIndex, payload.chosenColor);
 
   if (!result.success) {
@@ -90,6 +91,12 @@ function handlePlayCard(game, action) {
     currentPlayer: getCurrentPlayer(game),
     gameUpdated: !needsColorChoice,
   };
+
+  if (topCard.value === 6 && card.value === 7) {
+    if (Math.random() < 0.067) {
+      response.sixSeven = true;
+    }
+  }
 
   if (needsColorChoice) {
     game.previousColor = game.currentColor;
