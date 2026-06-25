@@ -106,7 +106,7 @@ function handlePlayCard(game, action) {
     handleGameEnd(game, playerId);
   }
 
-  game.lastActionAt = Date.now();
+  if (!needsColorChoice) game.lastActionAt = Date.now();
 
   return response;
 }
@@ -181,6 +181,8 @@ function handleChooseColor(game, action) {
     return { game, error: "Du bist nicht am Zug" };
   }
 
+  game.lastActionAt = Date.now();
+
   game.currentColor = color;
 
   const topCard = game.discardPile.at(-1);
@@ -215,7 +217,6 @@ function handleChooseColor(game, action) {
   }
 
   game.turnState = "idle";
-  game.lastActionAt = Date.now();
 
   return {
     game,
