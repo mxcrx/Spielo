@@ -46,6 +46,7 @@ function joinRoom(roomId, user) {
     if (room.players.length >= room.settings.maxPlayers) {
       return { success: false, message: "Der Raum ist bereits voll." };
     }
+
     room.players.push({
       userId: user.userId,
       socketId: user.socketId,
@@ -171,7 +172,7 @@ function startRoomGame(roomId) {
   const room = rooms[roomId];
   if (!room) return;
 
-  room.game = startGame(createUnoGame(room.players));
+  room.game = startGame(createUnoGame(room.players, room.settings));
   return room.game;
 }
 

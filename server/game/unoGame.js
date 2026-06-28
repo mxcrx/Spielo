@@ -1,9 +1,16 @@
-function createUnoGame(players) {
+function createUnoGame(players, settings) {
   return {
     players,
+    settings: settings || {
+      drawStacking: true,
+      jumpIn: false,
+      sevenZero: false,
+      forcePlay: false,
+      decks: 1,
+    },
     hands: {},
     unoDeclared: {},
-    deck: createDeck(),
+    deck: createDeck(settings?.decks || 1),
     discardPile: [],
     currentPlayerIndex: 0,
     direction: 1,
@@ -14,7 +21,7 @@ function createUnoGame(players) {
   };
 }
 
-function createDeck() {
+function createDeck(decksAmount = 1) {
   const colors = ["red", "green", "blue", "yellow"];
   const deck = [];
 
@@ -40,7 +47,12 @@ function createDeck() {
     deck.push({ color: null, value: "+4" });
   }
 
-  return shuffleDeck(deck);
+  let fullDeck = [];
+  for (let i = 0; i < decksAmount; i++) {
+    fullDeck = fullDeck.concat(deck);
+  }
+
+  return shuffleDeck(fullDeck);
 }
 
 function startGame(game) {
