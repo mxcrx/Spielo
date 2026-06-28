@@ -7,6 +7,15 @@ function createRoom(hostUser) {
   rooms[roomId] = {
     id: roomId,
     host: hostUser.userId,
+    settings: {
+      drawStacking: true,
+      jumpIn: false,
+      sevenZero: false,
+      forcePlay: false,
+      maxPlayers: 10,
+      timer: 0,
+      decks: 1,
+    },
     players: [
       {
         userId: hostUser.userId,
@@ -163,6 +172,22 @@ function startRoomGame(roomId) {
   return room.game;
 }
 
+function updateRoomSettings(roomId, userId, newSettings) {
+  const room = rooms[roomId];
+  if (!room || room.host !== userId) return { success: false };
+
+  room.settings = {
+    drawStacking: newSettings.drawStacking,
+    jumpIn: newSettings.jumpIn,
+    sevenZero: newSettings.sevenZero,
+    forcePlay: newSettings.forcePlay,
+    maxPlayers: newSettings.maxPlayers,
+    timer: newSettings.timer,
+    decks: newSettings.decks,
+  };
+  return { success: true, room };
+}
+
 module.exports = {
   createRoom,
   joinRoom,
@@ -172,4 +197,5 @@ module.exports = {
   leaveRoom,
   getRoom,
   startRoomGame,
+  updateRoomSettings,
 };

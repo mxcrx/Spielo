@@ -127,6 +127,7 @@ socket.on("room_created", (data) => {
   showScreen("roomScreen");
 
   toggleRoomHostUi(data.room);
+  updateRoomSettingsUi(data.room.settings);
 
   if (data.room && data.room.players) {
     renderPlayersList(data.room.players, null, {});
@@ -140,6 +141,7 @@ socket.on("room_updated", (room) => {
   showScreen("roomScreen");
 
   toggleRoomHostUi(room);
+  updateRoomSettingsUi(room.settings);
 
   renderPlayersList(room.players, null, {});
 });
@@ -617,10 +619,24 @@ function toggleRoomHostUi(room) {
   const startButton = document.getElementById("startGameButton");
   const startHint = document.getElementById("roomStartHint");
   const friendButton = document.getElementById("friendInviteButton");
+  const fields = [
+    "settingDrawStacking",
+    "settingJumpIn",
+    "settingSevenZero",
+    "settingForcePlay",
+    "settingMaxPlayers",
+    "settingTimer",
+    "settingDecks",
+  ];
 
   if (startButton) startButton.hidden = !isHost;
   if (startHint) startHint.hidden = !isHost;
   if (friendButton) friendButton.hidden = !isHost;
+
+  fields.forEach((id) => {
+    const el = document.getElementById(id);
+    if (el) el.disabled = !isHost;
+  });
 }
 
 function updateTurnIndicator(currentPlayerId) {
@@ -1110,6 +1126,42 @@ function acceptInvite(roomId, btnElement) {
 
 function showLeaderboard() {
   socket.emit("get_leaderboard");
+}
+
+function sendRoomSettings() {
+  const settings = {
+    drawStacking: document.getElementById("settingDrawStacking").checked,
+    jumpIn: document.getElementById("settingJumpIn").checked,
+    sevenZero: document.getElementById("settingSevenZero").checked,
+    forcePlay: document.getElementById("settingForcePlay").checked,
+    maxPlayers:
+      parseInt(document.getElementById("settingMaxPlayers").value, 10) || 2,
+    turnTimer: parseInt(document.getElementById("settingTimer").value, 10) || 0,
+    decks: parseInt(document.getElementById("settingDecks").value, 10) || 1,
+  };
+
+  socket.emit("update_room_settings", {
+    roomId: currentRoom,
+    settings,
+  });
+}
+
+function updateRoomSettingsUi(settings) {
+  if (!settings) return;
+  document.getElementById("settingDrawStacking").checked =
+    settings.drawStacking;
+
+  document.getElementById("settingJumpIn").checked = settings.jumpIn;
+
+  document.getElementById("settingSevenZero").checked = settings.sevenZero;
+
+  document.getElementById("settingForcePlay").checked = settings.forcePlay;
+
+  document.getElementById("settingMaxPlayers").value = settings.maxPlayers;
+
+  document.getElementById("settingTimer").value = settings.timer;
+
+  document.getElementById("settingDecks").value = settings.decks;
 }
 
 document.addEventListener("DOMContentLoaded", () => {

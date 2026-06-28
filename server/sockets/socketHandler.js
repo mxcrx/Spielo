@@ -7,6 +7,7 @@ const {
   getRoom,
   startRoomGame,
   updatePlayerIdentity,
+  updateRoomSettings,
 } = require("../game/roomManager");
 const { processAction } = require("../game/gameEngine");
 const {
@@ -991,6 +992,23 @@ function registerSocket(io, socket) {
       console.error("Leaderboard error:", err);
       socket.emit("error_message", "Fehler beim Laden der Bestenliste.");
     }
+  });
+
+  socket.on("update_room_settings", async (data) => {
+    const { roomId, settings } = data;
+    const sanatizedRoomId = normalizeRoomCode(roomId);
+    if (!sanatizedRoomId) return;
+
+    const res = updateRoomSettings(
+      sanatizedRoomId,
+      socket.user.userId,
+      settings,
+    );
+    if (res.success)
+      io.to(sanatizedRoomId).emit(
+        "room_updated",
+        await enrichRoomPayload(res.room),
+      );
   });
 }
 module.exports = { registerSocket };

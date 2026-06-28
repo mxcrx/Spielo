@@ -87,6 +87,75 @@
           Freunde
         </button>
         <button class="redButton" onclick="leaveRoom()">Raum verlassen</button>
+        <div id="room-settings">
+          <h2>Raum Einstellungen</h2>
+
+          <label>
+            <input
+              id="settingDrawStacking"
+              type="checkbox"
+              onchange="sendRoomSettings()"
+            />
+            Ziehen stapeln
+          </label>
+
+          <label>
+            <input
+              id="settingJumpIn"
+              type="checkbox"
+              onchange="sendRoomSettings()"
+            />
+            Jump-In
+          </label>
+
+          <label>
+            <input
+              id="settingSevenZero"
+              type="checkbox"
+              onchange="sendRoomSettings()"
+            />
+            7-0 Regel
+          </label>
+
+          <label>
+            <input
+              id="settingForcePlay"
+              type="checkbox"
+              onchange="sendRoomSettings()"
+            />
+            Force Play
+          </label>
+
+          <label>
+            <input
+              id="settingMaxPlayers"
+              type="number"
+              min="2"
+              max="10"
+              onchange="sendRoomSettings()"
+            />
+            Maximale Spieler
+          </label>
+
+          <label>
+            Zug Timer:
+            <select id="settingTimer" onchange="sendRoomSettings()">
+              <option value="0">Aus</option>
+              <option value="15">15 Sekunden</option>
+              <option value="30">30 Sekunden</option>
+              <option value="60">60 Sekunden</option>
+            </select>
+          </label>
+
+          <label>
+            Karten Decks:
+            <select id="settingDecks" onchange="sendRoomSettings()">
+              <option value="1">1 Deck</option>
+              <option value="2">2 Decks</option>
+              <option value="3">3 Decks</option>
+            </select>
+          </label>
+        </div>
       </div>
     </div>
 
