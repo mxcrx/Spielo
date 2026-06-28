@@ -48,6 +48,21 @@ function getWinnerName(game, playerId) {
   return winner?.username || "unknown";
 }
 
+function handleZeroRule(game) {
+  const numPlayers = game.players.length;
+  if (numPlayers <= 1) return;
+
+  const newHands = {};
+  for (let i = 0; i < numPlayers; i++) {
+    const currentId = game.players[i].userId;
+    const nextIndex = (i + game.direction + numPlayers) % numPlayers;
+    const nextId = game.players[nextIndex].userId;
+    newHands[nextId] = game.hands[currentId];
+  }
+  console.log("[Game Engine] Hände nach 0-Karten-Regel rotiert:", newHands);
+  game.hands = newHands;
+}
+
 function handlePlayCard(game, action) {
   const { playerId, payload = {} } = action;
   const cardIndex = payload.cardIndex;
@@ -116,6 +131,11 @@ function handlePlayCard(game, action) {
 
   if (card.value === "+4") {
     game.pendingDraw += 4;
+  }
+
+  if (game.settings.sevenZero && card.value === 0) {
+    console.log("[Game Engine] 0-Karten-Regel aktiviert: Hände werden rotiert");
+    handleZeroRule(game);
   }
 
   const response = {
