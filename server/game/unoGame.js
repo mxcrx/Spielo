@@ -146,7 +146,7 @@ function canPlay(top, card, currentColor) {
   return top.color === card.color || top.value === card.value;
 }
 
-function playCard(game, player, index, chosenColor) {
+function playCard(game, player, index, chosenColor, isJumpIn = false) {
   const userId = getPlayerUserId(player);
   const hand = game.hands[userId];
   if (!hand) return { success: false, message: "Spieler nicht im Spiel" };
@@ -157,14 +157,27 @@ function playCard(game, player, index, chosenColor) {
 
   const top = game.discardPile.at(-1);
 
-  if (!canPlay(top, card, game.currentColor))
-    return { success: false, message: "Ungültig" };
+  if (game.pendingDraw > 0) {
+    if (!game.settings.drawStacking) {
+      return { success: false, message: "Du musst die Karten ziehen." };
+    }
+    if (game.pendingDraw > 0 && card.value !== "+2")
+      return {
+        success: false,
+        message: "Du musst eine +2-Karte spielen oder ziehen",
+      };
+  }
 
-  if (game.pendingDraw > 0 && card.value !== "+2")
-    return {
-      success: false,
-      message: "Du musst eine +2-Karte spielen oder ziehen",
-    };
+  if (isJumpIn) {
+    if (card.color !== top.color || card.value !== top.value) {
+      return {
+        success: false,
+        message: "Du kannst nur die gleiche Karte spielen!",
+      };
+    }
+  } else if (!canPlay(top, card, game.currentColor)) {
+    return { success: false, message: "Du kannst diese Karte nicht spielen" };
+  }
 
   hand.splice(index, 1);
 
@@ -242,4 +255,5 @@ module.exports = {
   applyCardEffect,
   isDrawStackCard,
   checkWinner,
+  canPlay,
 };

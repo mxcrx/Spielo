@@ -370,7 +370,7 @@ function endTurn() {
 }
 
 function playCard(cardIndex) {
-  sendGameAction("PLAY_CARD", { cardIndex });
+  sendGameAction("PLAY_CARD", { cardIndex }, { allowWhenNotCurrent: true });
 }
 
 function showStatus(msg, color = "white", duration = 1500) {

@@ -585,7 +585,8 @@ function registerSocket(io, socket) {
 
     const allowedWhenNotCurrent =
       normalizedAction.type === "CALL_UNO" ||
-      normalizedAction.type === "CHALLENGE_UNO";
+      normalizedAction.type === "CHALLENGE_UNO" ||
+      (normalizedAction.type === "PLAY_CARD" && room.settings.jumpIn);
     if (
       !allowedWhenNotCurrent &&
       room.game.players[room.game.currentPlayerIndex]?.userId !==

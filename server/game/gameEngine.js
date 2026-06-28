@@ -6,6 +6,7 @@ const {
   applyCardEffect,
   drawMultipleCards,
   checkWinner,
+  canPlay,
 } = require("./unoGame");
 const matchService = require("../matches/matchService");
 
@@ -51,8 +52,28 @@ function handlePlayCard(game, action) {
   const { playerId, payload = {} } = action;
   const cardIndex = payload.cardIndex;
 
-  if (game.players[game.currentPlayerIndex]?.userId !== playerId) {
-    return { game, error: "Du bist nicht am Zug" };
+  const isCurrentTurn =
+    game.players[game.currentPlayerIndex]?.userId === playerId;
+  let isJumpIn = false;
+
+  if (!isCurrentTurn) {
+    if (!game.settings.jumpIn) {
+      return { game, error: "Du bist nicht am Zug" };
+    }
+
+    const hand = game.hands[playerId];
+    const card = hand[cardIndex];
+    const topCard = game.discardPile.at(-1);
+
+    if (
+      !card ||
+      !topCard ||
+      card.color !== topCard.color ||
+      card.value !== topCard.value
+    ) {
+      return { game, error: "Du kannst nur die gleiche Karte spielen!" };
+    }
+    isJumpIn = true;
   }
 
   if (game.turnState === "played" || game.turnState === "choosing_color") {
@@ -60,10 +81,22 @@ function handlePlayCard(game, action) {
   }
 
   const topCard = game.discardPile.at(-1);
-  const result = playCard(game, playerId, cardIndex, payload.chosenColor);
+  const result = playCard(
+    game,
+    playerId,
+    cardIndex,
+    payload.chosenColor,
+    isJumpIn,
+  );
 
   if (!result.success) {
     return { game, error: result.message };
+  }
+
+  if (isJumpIn) {
+    const jumperIndex = game.players.findIndex((p) => p.userId === playerId);
+    game.currentPlayerIndex = jumperIndex;
+    game.turnState = "played";
   }
 
   if ((game.hands[playerId] || []).length !== 1) {
@@ -165,6 +198,16 @@ function handleEndTurn(game, action) {
 
   if (game.turnState === "idle") {
     return { game, error: "Du musst eine Karte spielen oder ziehen" };
+  }
+
+  if (game.settings.forcePlay && game.turnState === "drawn") {
+    const hand = game.hands[playerId];
+    const drawnCard = hand[hand.length - 1];
+    const topCard = game.discardPile.at(-1);
+
+    if (canPlay(topCard, drawnCard, game.currentColor)) {
+      return { game, error: "Du musst die gezogene Karte spielen" };
+    }
   }
 
   game.turnState = "idle";
