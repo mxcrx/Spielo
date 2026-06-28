@@ -1136,7 +1136,7 @@ function sendRoomSettings() {
     forcePlay: document.getElementById("settingForcePlay").checked,
     maxPlayers:
       parseInt(document.getElementById("settingMaxPlayers").value, 10) || 2,
-    turnTimer: parseInt(document.getElementById("settingTimer").value, 10) || 0,
+    timer: parseInt(document.getElementById("settingTimer").value, 10) || 0,
     decks: parseInt(document.getElementById("settingDecks").value, 10) || 1,
   };
 
