@@ -43,6 +43,9 @@ function joinRoom(roomId, user) {
     existingPlayer.username = user.username || existingPlayer.username;
     existingPlayer.connected = true;
   } else {
+    if (room.players.length >= room.settings.maxPlayers) {
+      return { success: false, message: "Der Raum ist bereits voll." };
+    }
     room.players.push({
       userId: user.userId,
       socketId: user.socketId,
