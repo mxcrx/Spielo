@@ -62,7 +62,7 @@ function startGame(game) {
   game.currentPlayerIndex = Math.floor(Math.random() * game.players.length);
 
   for (const p of game.players) {
-    game.hands[p.userId] = game.deck.splice(0, 5);
+    game.hands[p.userId] = game.deck.splice(0, 15);
   }
 
   const firstCard = game.deck.pop();
@@ -121,7 +121,19 @@ function getCurrentPlayer(game) {
   return game.players[game.currentPlayerIndex].userId;
 }
 
-function canPlay(top, card, currentColor, settings) {
+function canPlay(top, card, currentColor, settings, pendingDraw = 0) {
+  if (pendingDraw > 0 && settings?.drawStacking) {
+    if (top.value === "+2") {
+      if (card.value === "+2") return true;
+      if (card.value === "+4" && (settings?.wildOnWild || false)) return true;
+      return false;
+    }
+    if (top.value === "+4") {
+      return card.value === "+4" && (settings?.wildOnWild || false);
+    }
+    return false;
+  }
+
   const allowWildOnWild = settings?.wildOnWild || false;
   if (top && (top.value === "wild" || top.value === "+4")) {
     if (card.value === "wild" || card.value === "+4") {
@@ -162,11 +174,31 @@ function playCard(game, player, index, chosenColor, isJumpIn = false) {
     if (!game.settings.drawStacking) {
       return { success: false, message: "Du musst die Karten ziehen." };
     }
-    if (game.pendingDraw > 0 && card.value !== "+2")
-      return {
-        success: false,
-        message: "Du musst eine +2-Karte spielen oder ziehen",
-      };
+
+    if (top && top.value === "+2") {
+      if (
+        card.value !== "+2" &&
+        card.value !== "+4" &&
+        game.settings.wildOnWild
+      ) {
+        return {
+          success: false,
+          message: "Du musst eine +2 oder +4 spielen, oder die Karten ziehen.",
+        };
+      } else if (card.value !== "+2" && !game.settings.wildOnWild) {
+        return {
+          success: false,
+          message: "Du musst eine +2 spielen oder die Karten ziehen.",
+        };
+      }
+    } else if (top && top.value === "+4") {
+      if (card.value !== "+4") {
+        return {
+          success: false,
+          message: "Du musst eine +4 spielen oder die Karten ziehen.",
+        };
+      }
+    }
   }
 
   if (isJumpIn) {
@@ -176,7 +208,9 @@ function playCard(game, player, index, chosenColor, isJumpIn = false) {
         message: "Du kannst nur die gleiche Karte spielen!",
       };
     }
-  } else if (!canPlay(top, card, game.currentColor, game.settings)) {
+  } else if (
+    !canPlay(top, card, game.currentColor, game.settings, game.pendingDraw)
+  ) {
     return { success: false, message: "Du kannst diese Karte nicht spielen" };
   }
 
@@ -210,10 +244,6 @@ function applyCardEffect(game, card) {
     default:
       return 1;
   }
-}
-
-function isDrawStackCard(card) {
-  return card.value === "+2";
 }
 
 function checkWinner(game, player) {
@@ -254,7 +284,6 @@ module.exports = {
   getCurrentPlayer,
   playCard,
   applyCardEffect,
-  isDrawStackCard,
   checkWinner,
   canPlay,
 };

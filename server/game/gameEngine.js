@@ -15,7 +15,7 @@ function canPlayAnyCard(game, playerId) {
   const topCard = game.discardPile.at(-1);
 
   return hand.some((card) =>
-    canPlay(topCard, card, game.currentColor, game.settings),
+    canPlay(topCard, card, game.currentColor, game.settings, game.pendingDraw),
   );
 }
 
@@ -120,7 +120,6 @@ function handlePlayCard(game, action) {
   }
 
   if (game.settings.sevenZero && card.value === 0) {
-    console.log("[Game Engine] 0-Karten-Regel aktiviert: Hände werden rotiert");
     handleZeroRule(game);
   }
 
@@ -211,7 +210,15 @@ function handleEndTurn(game, action) {
     const drawnCard = hand[hand.length - 1];
     const topCard = game.discardPile.at(-1);
 
-    if (canPlay(topCard, drawnCard, game.currentColor, game.settings)) {
+    if (
+      canPlay(
+        topCard,
+        drawnCard,
+        game.currentColor,
+        game.settings,
+        game.pendingDraw,
+      )
+    ) {
       return { game, error: "Du musst die gezogene Karte spielen" };
     }
   }
@@ -257,19 +264,21 @@ function handleChooseColor(game, action) {
   }
 
   if (game.pendingDraw > 0 && topCard?.value === "+4") {
-    const drawAmount = game.pendingDraw;
-    const nextPlayer = nextTurn(game);
+    if (!game.settings.drawStacking || !game.settings.wildOnWild) {
+      const drawAmount = game.pendingDraw;
+      const nextPlayer = nextTurn(game);
 
-    drawMultipleCards(game, nextPlayer, drawAmount);
-    game.pendingDraw = 0;
+      drawMultipleCards(game, nextPlayer, drawAmount);
+      game.pendingDraw = 0;
 
-    const currentPlayer = resolveAfterDraw(game, nextPlayer);
+      const currentPlayer = resolveAfterDraw(game, nextPlayer);
 
-    return {
-      game,
-      currentPlayer,
-      gameUpdated: true,
-    };
+      return {
+        game,
+        currentPlayer,
+        gameUpdated: true,
+      };
+    }
   }
 
   game.turnState = "idle";
