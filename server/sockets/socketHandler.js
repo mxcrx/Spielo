@@ -194,6 +194,65 @@ function consumeAuthAttempt(socket) {
   return true;
 }
 
+function startTurnTimer(io, roomId) {
+  const room = getRoom(roomId);
+  if (!room || !room.game || !room.settings || room.settings.timer <= 0) return;
+
+  if (room.turnTimerId) clearTimeout(room.turnTimerId);
+
+  const timeMs = room.settings.timer * 1000;
+
+  room.turnTimerId = setTimeout(async () => {
+    const currentPlayerId =
+      room.game.players[room.game.currentPlayerIndex].userId;
+
+    let result = processAction(room.game, {
+      type: "DRAW_CARD",
+      playerId: currentPlayerId,
+    });
+
+    if (result.game.turnState === "drawn") {
+      result = processAction(result.game, {
+        type: "END_TURN",
+        playerId: currentPlayerId,
+      });
+
+      const profile = await getProfile(currentPlayerId);
+      const displayName =
+        profile?.displayName ||
+        room.game.players[room.game.currentPlayerIndex].username;
+
+      io.to(roomId).emit(
+        "error_message",
+        `${displayName} hat zu lange gebraucht und wurde übersprungen.`,
+      );
+    }
+
+    room.game = result.game;
+
+    io.to(roomId).emit("game_updated", {
+      game: {
+        ...room.game,
+        players: await enrichPlayersWithDisplayNames(room.game.players),
+      },
+      currentPlayer:
+        result.currentPlayer ||
+        room.game.players[room.game.currentPlayerIndex].userId,
+    });
+
+    startTurnTimer(io, roomId);
+  }, timeMs);
+}
+
+function stopTurnTimer(roomId) {
+  const room = getRoom(roomId);
+
+  if (room && room.turnTimerId) {
+    clearTimeout(room.turnTimerId);
+    room.turnTimerId = null;
+  }
+}
+
 function registerSocket(io, socket) {
   const existingUserId = socket.handshake.auth?.userId;
   socket.user = createGuestUser(socket.id, existingUserId);
@@ -522,6 +581,7 @@ function registerSocket(io, socket) {
         io.to(res.roomId).emit("game_aborted", {
           message: `${displayName} hat den Raum verlassen. Das Spiel wurde abgebrochen.`,
         });
+        stopTurnTimer(res.roomId);
       }
     }
   });
@@ -543,6 +603,7 @@ function registerSocket(io, socket) {
       roomId: sanitizedRoomId,
       game: enrichedGame,
     });
+    startTurnTimer(io, sanitizedRoomId);
   });
 
   socket.on("game_action", async (data) => {
@@ -611,6 +672,10 @@ function registerSocket(io, socket) {
     }
 
     if (result.gameUpdated) {
+      if (typeof startTurnTimer === "function") {
+        startTurnTimer(io, sanitizedRoomId);
+      }
+
       io.to(sanitizedRoomId).emit("game_updated", {
         game: {
           ...room.game,
@@ -626,6 +691,10 @@ function registerSocket(io, socket) {
     }
 
     if (result.gameOver) {
+      if (typeof stopTurnTimer === "function") {
+        stopTurnTimer(sanitizedRoomId);
+      }
+
       const enrichedPlayers = await enrichPlayersWithDisplayNames(
         room.game.players,
       );
@@ -692,6 +761,7 @@ function registerSocket(io, socket) {
               io.to(res.roomId).emit("game_aborted", {
                 message: `${displayName} hat das Spiel verlassen. Das Spiel wurde abgebrochen.`,
               });
+              stopTurnTimer(res.roomId);
             }
           }
         }

@@ -22,6 +22,7 @@ let currentProfileData = null;
 let isFriendsMenuOpen = false;
 let currentFriends = [];
 let currentFriendRequests = [];
+let clientTimerInterval = null;
 
 function showScreen(screenId) {
   const screens = [
@@ -153,6 +154,7 @@ socket.on("error_message", (msg) => {
 socket.on("game_started", (game) => {
   currentRoom = game?.roomId || currentRoom;
   currentGame = game?.game || game;
+  const timerSettings = currentGame.settings?.timer || 0;
   hideWinner();
   showScreen("gameScreen");
   showStatus("Spiel gestartet");
@@ -166,11 +168,13 @@ socket.on("game_started", (game) => {
   renderPlayersList(currentGame.players, currentPlayerId, currentGame.hands);
   updateTurnIndicator(currentPlayerId);
   updateUnoButtons();
+  startClientCountdown(timerSettings);
 });
 
 socket.on("game_updated", (data) => {
   currentGame = data.game;
   currentRoom = data.roomId || currentRoom;
+  const timerSettings = currentGame.settings?.timer || 0;
   showScreen("gameScreen");
 
   currentPlayerId = data.currentPlayer || currentPlayerId;
@@ -180,11 +184,13 @@ socket.on("game_updated", (data) => {
   renderPlayersList(currentGame.players, currentPlayerId, currentGame.hands);
   updateTurnIndicator(currentPlayerId);
   updateUnoButtons();
+  startClientCountdown(timerSettings);
   if (data.sixSeven) renderSixSevenEffect();
 });
 
 socket.on("game_over", (data) => {
   document.getElementById("colorPicker").style.display = "none";
+  stopClientCountdown();
   showWinner(data.winner);
 
   showStatus("Spiel beendet");
@@ -640,12 +646,13 @@ function toggleRoomHostUi(room) {
 }
 
 function updateTurnIndicator(currentPlayerId) {
+  const container = document.getElementById("turnContainer");
   const indicator = document.getElementById("turnIndicator");
   if (!indicator || !currentGame) return;
 
   if (currentPlayerId === myUserId) {
     indicator.textContent = "Du bist am Zug!";
-    indicator.className = "turn-indicator my-turn";
+    container.className = "turn-container my-turn";
   } else {
     const player = currentGame.players.find(
       (p) => p.userId === currentPlayerId,
@@ -653,7 +660,7 @@ function updateTurnIndicator(currentPlayerId) {
     const playerName =
       player?.displayName || player?.username || "Ein Anderer Spieler";
     indicator.textContent = `${playerName} ist am Zug...`;
-    indicator.className = "turn-indicator other-turn";
+    container.className = "turn-container other-turn";
   }
 }
 
@@ -1162,6 +1169,38 @@ function updateRoomSettingsUi(settings) {
   document.getElementById("settingTimer").value = settings.timer;
 
   document.getElementById("settingDecks").value = settings.decks;
+}
+
+function startClientCountdown(seconds) {
+  const display = document.getElementById("turnTimerDisplay");
+  const secondsSpan = document.getElementById("turnTimerSeconds");
+
+  if (!seconds || seconds <= 0) {
+    if (display) display.hidden = true;
+    return;
+  }
+
+  if (display) display.hidden = false;
+
+  let timeLeft = seconds;
+  secondsSpan.innerText = timeLeft;
+
+  if (clientTimerInterval) clearInterval(clientTimerInterval);
+
+  clientTimerInterval = setInterval(() => {
+    timeLeft--;
+    if (timeLeft < 0) {
+      clearInterval(clientTimerInterval);
+      timeLeft = 0;
+    }
+    secondsSpan.innerText = timeLeft;
+  }, 1000);
+}
+
+function stopClientCountdown() {
+  if (clientTimerInterval) clearInterval(clientTimerInterval);
+  const display = document.getElementById("turnTimerDisplay");
+  if (display) display.hidden = true;
 }
 
 document.addEventListener("DOMContentLoaded", () => {

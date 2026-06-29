@@ -528,15 +528,29 @@ h3 {
   border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
-.turn-indicator {
-  padding: 6px 6px;
+.turn-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
   margin: 10px 0 20px;
   border-radius: 12px;
-  text-align: center;
-  font-size: 1.2rem;
-  font-weight: 800;
   transition: all 0.3s ease;
 }
+
+#turnIndicator {
+  font-size: 1.2rem;
+  font-weight: 800;
+}
+
+.turn-timer-display {
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: #e74c3c;
+  text-shadow: 0 0 10px rgba(231, 76, 60, 0.5);
+}
+
 .my-turn {
   background: rgba(46, 204, 113, 0.2);
   color: #2ecc71;
@@ -544,6 +558,7 @@ h3 {
   box-shadow: 0 0 15px rgba(46, 204, 113, 0.2);
   animation: pulseGlow 2s infinite;
 }
+
 .other-turn {
   background: rgba(255, 255, 255, 0.05);
   color: #aaa;
@@ -1281,7 +1296,8 @@ h3 {
     width: 100%;
   }
 
-  .turn-indicator {
+  .turn-indicator,
+  .turn-timer-display {
     font-size: 1rem;
   }
 
