@@ -182,16 +182,13 @@ function updateRoomSettings(roomId, userId, newSettings) {
   const room = rooms[roomId];
   if (!room || room.host !== userId) return { success: false };
 
+  const startCards = Math.min(Math.max(newSettings.startCards, 3), 12);
+  const maxPlayers = Math.min(newSettings.maxPlayers, 10);
+
   room.settings = {
-    drawStacking: newSettings.drawStacking,
-    wildOnWild: newSettings.wildOnWild,
-    jumpIn: newSettings.jumpIn,
-    sevenZero: newSettings.sevenZero,
-    forcePlay: newSettings.forcePlay,
-    maxPlayers: newSettings.maxPlayers,
-    startCards: newSettings.startCards,
-    timer: newSettings.timer,
-    decks: newSettings.decks,
+    ...newSettings,
+    startCards,
+    maxPlayers,
   };
   return { success: true, room };
 }
