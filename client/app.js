@@ -332,6 +332,24 @@ socket.on("leaderboard_data", (data) => {
   showScreen("leaderboardScreen");
 });
 
+socket.on("choose_swap_target", (data) => {
+  const picker = document.getElementById("playerPicker");
+  const optionsContainer = document.getElementById("playerOptions");
+
+  optionsContainer.innerHTML = "";
+
+  data.opponents.forEach((opponent) => {
+    const btn = document.createElement("button");
+    btn.className = "player-btn";
+    btn.innerHTML = `<span>${escapeHtml(opponent.name)}</span> <span> ${opponent.cardCount} Karten</span>`;
+    btn.onclick = () => selectSwapTarget(opponent.id);
+
+    optionsContainer.appendChild(btn);
+  });
+
+  picker.style.display = "flex";
+});
+
 function createRoom() {
   socket.emit("create_room");
 }
@@ -1210,6 +1228,11 @@ function stopClientCountdown() {
   if (clientTimerInterval) clearInterval(clientTimerInterval);
   const display = document.getElementById("turnTimerDisplay");
   if (display) display.hidden = true;
+}
+
+function selectSwapTarget(targetId) {
+  document.getElementById("playerPicker").style.display = "none";
+  sendGameAction("CHOOSE_SWAP_TARGET", { targetId });
 }
 
 document.addEventListener("DOMContentLoaded", () => {

@@ -671,6 +671,25 @@ function registerSocket(io, socket) {
       });
     }
 
+    if (result.chooseSwapTarget) {
+      const currentPlayerId =
+        result.game.players[result.game.currentPlayerIndex].userId;
+
+      const opponents = await enrichPlayersWithDisplayNames(
+        result.game.players.filter(
+          (player) => player.userId !== currentPlayerId,
+        ),
+      );
+
+      socket.emit("choose_swap_target", {
+        opponents: opponents.map((player) => ({
+          id: player.userId,
+          name: player.displayName || player.username,
+          cardCount: result.game.hands[player.userId]?.length || 0,
+        })),
+      });
+    }
+
     if (result.gameUpdated) {
       if (typeof startTurnTimer === "function") {
         startTurnTimer(io, sanitizedRoomId);

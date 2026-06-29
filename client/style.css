@@ -1180,6 +1180,72 @@ h3 {
     sans-serif;
 }
 
+.player-picker {
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(20, 20, 20, 0.95);
+  padding: 20px;
+  border-radius: 16px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
+  gap: 15px;
+  z-index: 999;
+  color: white;
+  width: 320px;
+  box-sizing: border-box;
+}
+
+.player-picker h3 {
+  margin: 0 0 10px 0;
+  font-size: 18px;
+}
+
+.player-options {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  max-height: 300px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 6px;
+  box-sizing: border-box;
+}
+
+.player-btn {
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  padding: 12px 20px;
+  border-radius: 10px;
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  box-sizing: border-box;
+  white-space: nowrap;
+  transition:
+    transform 0.15s ease,
+    background 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.player-btn:hover {
+  transform: scale(1.02);
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+.player-btn:active {
+  transform: scale(0.98);
+}
+
 @keyframes mergeLeft {
   0% {
     transform: translateX(-150px) rotate(-10deg);

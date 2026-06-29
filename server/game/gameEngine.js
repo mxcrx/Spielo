@@ -45,7 +45,6 @@ function handleZeroRule(game) {
     const nextId = game.players[nextIndex].userId;
     newHands[nextId] = game.hands[currentId];
   }
-  console.log("[Game Engine] Hände nach 0-Karten-Regel rotiert:", newHands);
   game.hands = newHands;
 }
 
@@ -77,7 +76,11 @@ function handlePlayCard(game, action) {
     isJumpIn = true;
   }
 
-  if (game.turnState === "played" || game.turnState === "choosing_color") {
+  if (
+    game.turnState === "played" ||
+    game.turnState === "choosing_color" ||
+    game.turnState === "choosing_swap_target"
+  ) {
     return { game, error: "Du hast diesen Zug bereits abgeschlossen" };
   }
 
@@ -106,8 +109,10 @@ function handlePlayCard(game, action) {
 
   const card = result.playedCard;
   const needsColorChoice = card.value === "wild" || card.value === "+4";
+  const needsSwapTarget = game.settings.sevenZero && card.value === 7;
 
   game.turnState = needsColorChoice ? "choosing_color" : "played";
+  game.turnState = needsSwapTarget ? "choosing_swap_target" : game.turnState;
 
   const steps = applyCardEffect(game, card);
 
@@ -140,6 +145,8 @@ function handlePlayCard(game, action) {
     game.previousColor = game.currentColor;
     response.chooseColor = true;
     response.chooseColorReason = card.value;
+  } else if (needsSwapTarget) {
+    response.chooseSwapTarget = true;
   } else {
     response.currentPlayer = nextTurn(game, steps);
     game.turnState = "idle";
@@ -378,6 +385,49 @@ function handleCancelColorChoice(game, action) {
   };
 }
 
+function handleChooseSwapTarget(game, action) {
+  const { playerId, payload = {} } = action;
+  const { targetId } = payload;
+
+  if (game.players[game.currentPlayerIndex]?.userId !== playerId) {
+    return { game, error: "Du bist nicht am Zug" };
+  }
+
+  if (game.turnState !== "choosing_swap_target") {
+    return { game, error: "Du bist nicht am Zug" };
+  }
+
+  if (!targetId || !game.hands[targetId]) {
+    return { game, error: "Ungültiger Tauschpartner" };
+  }
+
+  const myHand = [...game.hands[playerId]];
+  const targetHand = [...game.hands[targetId]];
+
+  game.hands[playerId] = targetHand;
+  game.hands[targetId] = myHand;
+
+  game.lastActionAt = Date.now();
+
+  if (checkWinner(game, playerId) || checkWinner(game, targetId)) {
+    const winnderId = checkWinner(game, playerId) ? playerId : targetId;
+    handleGameEnd(game, winnderId);
+    return {
+      game,
+      gameOver: true,
+      winner: getWinnerName(game, winnderId),
+    };
+  }
+
+  game.turnState = "idle";
+
+  return {
+    game,
+    currentPlayer: nextTurn(game),
+    gameUpdated: true,
+  };
+}
+
 function processAction(game, action = {}) {
   switch (action.type) {
     case "PLAY_CARD":
@@ -400,6 +450,9 @@ function processAction(game, action = {}) {
 
     case "CANCEL_COLOR_CHOICE":
       return handleCancelColorChoice(game, action);
+
+    case "CHOOSE_SWAP_TARGET":
+      return handleChooseSwapTarget(game, action);
 
     default:
       return { game, error: "Unknown action" };
