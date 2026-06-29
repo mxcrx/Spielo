@@ -627,6 +627,7 @@ function toggleRoomHostUi(room) {
   const friendButton = document.getElementById("friendInviteButton");
   const fields = [
     "settingDrawStacking",
+    "settingWildOnWild",
     "settingJumpIn",
     "settingSevenZero",
     "settingForcePlay",
@@ -1138,6 +1139,7 @@ function showLeaderboard() {
 function sendRoomSettings() {
   const settings = {
     drawStacking: document.getElementById("settingDrawStacking").checked,
+    wildOnWild: document.getElementById("settingWildOnWild").checked,
     jumpIn: document.getElementById("settingJumpIn").checked,
     sevenZero: document.getElementById("settingSevenZero").checked,
     forcePlay: document.getElementById("settingForcePlay").checked,
@@ -1159,6 +1161,8 @@ function updateRoomSettingsUi(settings) {
     settings.drawStacking;
 
   document.getElementById("settingJumpIn").checked = settings.jumpIn;
+
+  document.getElementById("settingWildOnWild").checked = settings.wildOnWild;
 
   document.getElementById("settingSevenZero").checked = settings.sevenZero;
 

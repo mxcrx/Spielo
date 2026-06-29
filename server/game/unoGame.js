@@ -121,13 +121,14 @@ function getCurrentPlayer(game) {
   return game.players[game.currentPlayerIndex].userId;
 }
 
-function canPlay(top, card, currentColor) {
+function canPlay(top, card, currentColor, settings) {
+  const allowWildOnWild = settings?.wildOnWild || false;
   if (top && (top.value === "wild" || top.value === "+4")) {
-    return (
-      card.value !== "wild" &&
-      card.value !== "+4" &&
-      card.color === currentColor
-    );
+    if (card.value === "wild" || card.value === "+4") {
+      return allowWildOnWild;
+    }
+
+    return card.color === currentColor;
   }
 
   if (card.value === "wild" || card.value === "+4") return true;
@@ -175,7 +176,7 @@ function playCard(game, player, index, chosenColor, isJumpIn = false) {
         message: "Du kannst nur die gleiche Karte spielen!",
       };
     }
-  } else if (!canPlay(top, card, game.currentColor)) {
+  } else if (!canPlay(top, card, game.currentColor, game.settings)) {
     return { success: false, message: "Du kannst diese Karte nicht spielen" };
   }
 

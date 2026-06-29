@@ -9,6 +9,7 @@ function createRoom(hostUser) {
     host: hostUser.userId,
     settings: {
       drawStacking: true,
+      wildOnWild: false,
       jumpIn: false,
       sevenZero: false,
       forcePlay: false,
@@ -182,6 +183,7 @@ function updateRoomSettings(roomId, userId, newSettings) {
 
   room.settings = {
     drawStacking: newSettings.drawStacking,
+    wildOnWild: newSettings.wildOnWild,
     jumpIn: newSettings.jumpIn,
     sevenZero: newSettings.sevenZero,
     forcePlay: newSettings.forcePlay,

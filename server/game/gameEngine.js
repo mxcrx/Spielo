@@ -14,23 +14,9 @@ function canPlayAnyCard(game, playerId) {
   const hand = game.hands[playerId] || [];
   const topCard = game.discardPile.at(-1);
 
-  return hand.some((card) => {
-    if (!topCard) return true;
-
-    if (topCard.value === "wild" || topCard.value === "+4") {
-      return (
-        card.value !== "wild" &&
-        card.value !== "+4" &&
-        card.color === game.currentColor
-      );
-    }
-
-    if (card.value === "wild" || card.value === "+4") return true;
-
-    if (game.currentColor && card.color === game.currentColor) return true;
-
-    return topCard.color === card.color || topCard.value === card.value;
-  });
+  return hand.some((card) =>
+    canPlay(topCard, card, game.currentColor, game.settings),
+  );
 }
 
 function resolveAfterDraw(game, playerId) {
@@ -225,7 +211,7 @@ function handleEndTurn(game, action) {
     const drawnCard = hand[hand.length - 1];
     const topCard = game.discardPile.at(-1);
 
-    if (canPlay(topCard, drawnCard, game.currentColor)) {
+    if (canPlay(topCard, drawnCard, game.currentColor, game.settings)) {
       return { game, error: "Du musst die gezogene Karte spielen" };
     }
   }
