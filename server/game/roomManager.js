@@ -14,6 +14,7 @@ function createRoom(hostUser) {
       sevenZero: false,
       forcePlay: false,
       maxPlayers: 10,
+      startCards: 7,
       timer: 0,
       decks: 1,
     },
@@ -188,6 +189,7 @@ function updateRoomSettings(roomId, userId, newSettings) {
     sevenZero: newSettings.sevenZero,
     forcePlay: newSettings.forcePlay,
     maxPlayers: newSettings.maxPlayers,
+    startCards: newSettings.startCards,
     timer: newSettings.timer,
     decks: newSettings.decks,
   };

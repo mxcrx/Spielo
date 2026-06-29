@@ -62,7 +62,7 @@ function startGame(game) {
   game.currentPlayerIndex = Math.floor(Math.random() * game.players.length);
 
   for (const p of game.players) {
-    game.hands[p.userId] = game.deck.splice(0, 5);
+    game.hands[p.userId] = game.deck.splice(0, game.settings?.startCards || 7);
   }
 
   const firstCard = game.deck.pop();

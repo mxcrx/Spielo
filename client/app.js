@@ -632,6 +632,7 @@ function toggleRoomHostUi(room) {
     "settingSevenZero",
     "settingForcePlay",
     "settingMaxPlayers",
+    "settingStartCards",
     "settingTimer",
     "settingDecks",
   ];
@@ -1145,6 +1146,8 @@ function sendRoomSettings() {
     forcePlay: document.getElementById("settingForcePlay").checked,
     maxPlayers:
       parseInt(document.getElementById("settingMaxPlayers").value, 10) || 2,
+    startCards:
+      parseInt(document.getElementById("settingStartCards").value, 10) || 7,
     timer: parseInt(document.getElementById("settingTimer").value, 10) || 0,
     decks: parseInt(document.getElementById("settingDecks").value, 10) || 1,
   };
@@ -1169,6 +1172,8 @@ function updateRoomSettingsUi(settings) {
   document.getElementById("settingForcePlay").checked = settings.forcePlay;
 
   document.getElementById("settingMaxPlayers").value = settings.maxPlayers;
+
+  document.getElementById("settingStartCards").value = settings.startCards;
 
   document.getElementById("settingTimer").value = settings.timer;
 

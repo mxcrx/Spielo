@@ -147,6 +147,17 @@
           </label>
 
           <label>
+            <input
+              id="settingStartCards"
+              type="number"
+              min="3"
+              max="12"
+              onchange="sendRoomSettings()"
+            />
+            Startkarten
+          </label>
+
+          <label>
             Zug Timer:
             <select id="settingTimer" onchange="sendRoomSettings()">
               <option value="0">Aus</option>
