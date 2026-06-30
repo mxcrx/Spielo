@@ -87,94 +87,111 @@
           Freunde
         </button>
         <button class="redButton" onclick="leaveRoom()">Raum verlassen</button>
-        <div id="room-settings">
-          <h2>Raum Einstellungen</h2>
+        <div id="room-settings" class="room-settings">
+          <h2 class="room-settings-title">Raum Einstellungen</h2>
 
-          <label>
-            <input
-              id="settingDrawStacking"
-              type="checkbox"
-              onchange="sendRoomSettings()"
-            />
-            Verlängern
-          </label>
+          <div class="panel-section">
+            <div class="section-title">Modifikatoren</div>
 
-          <label>
-            <input
-              id="settingWildOnWild"
-              type="checkbox"
-              onchange="sendRoomSettings()"
-            />
-            Schwarz auf Schwarz
-          </label>
+            <label class="toggle-switch">
+              <span class="label-text">Verlängern</span>
+              <input
+                id="settingDrawStacking"
+                type="checkbox"
+                onchange="sendRoomSettings()"
+              />
+              <span class="switch-slider"></span>
+            </label>
 
-          <label>
-            <input
-              id="settingJumpIn"
-              type="checkbox"
-              onchange="sendRoomSettings()"
-            />
-            Zwischenwerfen
-          </label>
+            <label class="toggle-switch">
+              <span class="label-text">Schwarz auf Schwarz</span>
+              <input
+                id="settingWildOnWild"
+                type="checkbox"
+                onchange="sendRoomSettings()"
+              />
+              <span class="switch-slider"></span>
+            </label>
 
-          <label>
-            <input
-              id="settingSevenZero"
-              type="checkbox"
-              onchange="sendRoomSettings()"
-            />
-            7-0 Drehregel
-          </label>
+            <label class="toggle-switch">
+              <span class="label-text">Zwischenwerfen</span>
+              <input
+                id="settingJumpIn"
+                type="checkbox"
+                onchange="sendRoomSettings()"
+              />
+              <span class="switch-slider"></span>
+            </label>
 
-          <label>
-            <input
-              id="settingForcePlay"
-              type="checkbox"
-              onchange="sendRoomSettings()"
-            />
-            Legepflicht
-          </label>
+            <label class="toggle-switch">
+              <span class="label-text">7-0 Drehregel</span>
+              <input
+                id="settingSevenZero"
+                type="checkbox"
+                onchange="sendRoomSettings()"
+              />
+              <span class="switch-slider"></span>
+            </label>
 
-          <label>
-            <input
-              id="settingMaxPlayers"
-              type="number"
-              min="2"
-              max="10"
-              onchange="sendRoomSettings()"
-            />
-            Maximale Spieler
-          </label>
+            <label class="toggle-switch">
+              <span class="label-text">Legepflicht</span>
+              <input
+                id="settingForcePlay"
+                type="checkbox"
+                onchange="sendRoomSettings()"
+              />
+              <span class="switch-slider"></span>
+            </label>
+          </div>
 
-          <label>
-            <input
-              id="settingStartCards"
-              type="number"
-              min="3"
-              max="12"
-              onchange="sendRoomSettings()"
-            />
-            Startkarten
-          </label>
+          <div class="panel-section">
+            <div class="section-title">Grenzwerte</div>
 
-          <label>
-            Zug Timer:
-            <select id="settingTimer" onchange="sendRoomSettings()">
-              <option value="0">Aus</option>
-              <option value="15">15 Sekunden</option>
-              <option value="30">30 Sekunden</option>
-              <option value="60">60 Sekunden</option>
-            </select>
-          </label>
+            <div class="panel-input-group">
+              <span class="label-text">Maximale Spieler</span>
+              <input
+                id="settingMaxPlayers"
+                type="number"
+                min="2"
+                max="10"
+                onchange="sendRoomSettings()"
+              />
+            </div>
 
-          <label>
-            Karten Decks:
-            <select id="settingDecks" onchange="sendRoomSettings()">
-              <option value="1">1 Deck</option>
-              <option value="2">2 Decks</option>
-              <option value="3">3 Decks</option>
-            </select>
-          </label>
+            <div class="panel-input-group">
+              <span class="label-text">Startkarten</span>
+              <input
+                id="settingStartCards"
+                type="number"
+                min="3"
+                max="12"
+                onchange="sendRoomSettings()"
+              />
+            </div>
+          </div>
+
+          <div class="panel-section">
+            <div class="section-title">Parameter</div>
+
+            <div class="panel-input-group">
+              <span class="label-text">Zug Timer</span>
+              <select id="settingTimer" onchange="sendRoomSettings()">
+                <option value="0">Aus</option>
+                <option value="15">15 Sekunden</option>
+                <option value="30">30 Sekunden</option>
+                <option value="60">60 Sekunden</option>
+              </select>
+            </div>
+
+            <div class="panel-input-group">
+              <span class="label-text">Karten Decks</span>
+              <select id="settingDecks" onchange="sendRoomSettings()">
+                <option value="1">1 Deck</option>
+                <option value="2">2 Decks</option>
+                <option value="3">3 Decks</option>
+              </select>
+            </div>
+          </div>
         </div>
       </div>
     </div>

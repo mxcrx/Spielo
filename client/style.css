@@ -1329,6 +1329,151 @@ h3 {
   animation: logoZoomIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
 
+#room-settings {
+  width: 100%;
+  margin-top: 30px;
+  padding: 25px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  box-sizing: border-box;
+}
+
+.room-settings-title {
+  letter-spacing: 2px;
+  font-size: 2rem;
+  margin: 0;
+  text-align: center;
+}
+
+.panel-section {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 20px 15px 15px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.section-title {
+  position: absolute;
+  top: -10px;
+  left: 15px;
+  background: #0d1117;
+  padding: 0 8px;
+  font-family: monospace;
+  font-size: 0.75rem;
+  color: white;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.label-text {
+  font-size: 0.95rem;
+  color: rgba(255, 255, 255, 0.85);
+  font-weight: 500;
+}
+
+.toggle-switch {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  pointer-events: none;
+  padding: 4px 0;
+}
+
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+  position: absolute;
+}
+
+.switch-slider {
+  position: relative;
+  display: inline-block;
+  width: 46px;
+  height: 24px;
+  background-color: #232d38;
+  border-radius: 20px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.switch-slider::before {
+  content: "";
+  position: absolute;
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 2px;
+  background-color: #7f8c8d;
+  border-radius: 50%;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
+}
+
+.toggle-switch input:checked + .switch-slider {
+  background-color: rgba(46, 204, 113, 0.2);
+  border-color: #2ecc71;
+  box-shadow: 0 0 10px rgba(46, 204, 113, 0.2);
+}
+
+.toggle-switch input:checked + .switch-slider::before {
+  transform: translateX(22px);
+  background-color: #2ecc71;
+  box-shadow: 0 0 8px #2ecc71;
+}
+
+.panel-input-group {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+#room-settings input[type="number"],
+#room-settings select {
+  font-weight: bold;
+  background: #161b22;
+  border: 1px solid #30363d;
+  color: white;
+  border-radius: 6px;
+  padding: 6px 10px;
+  outline: none;
+  text-align: center;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
+}
+
+#room-settings input[type="number"] {
+  min-width: 30px;
+  width: 30px;
+  height: 20px;
+}
+
+#room-settings select {
+  cursor: pointer;
+  min-width: 130px;
+}
+
+#room-settings input[type="number"]:focus,
+#room-settings select:focus {
+  border-color: #fff;
+  box-shadow: 0 0 10px rgba(237, 244, 255, 0.2);
+}
+
+#room-settings select option {
+  background: #161b22;
+  color: white;
+  text-shadow: none;
+}
+
 @media (max-width: 600px) {
   body {
     padding: 12px;
@@ -1373,6 +1518,10 @@ h3 {
     bottom: 0;
     right: 0;
     border-radius: 16px 16px 0 0;
+  }
+
+  .room-settings {
+    padding: 15px;
   }
 }
 
