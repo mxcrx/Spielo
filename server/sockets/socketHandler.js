@@ -1086,17 +1086,19 @@ function registerSocket(io, socket) {
   });
 
   socket.on("update_room_settings", async (data) => {
+    if (!isPlainObject(data)) return;
+
     const { roomId, settings } = data;
-    const sanatizedRoomId = normalizeRoomCode(roomId);
-    if (!sanatizedRoomId) return;
+    const sanitizedRoomId = normalizeRoomCode(roomId);
+    if (!sanitizedRoomId) return;
 
     const res = updateRoomSettings(
-      sanatizedRoomId,
+      sanitizedRoomId,
       socket.user.userId,
       settings,
     );
     if (res.success) {
-      io.to(sanatizedRoomId).emit(
+      io.to(sanitizedRoomId).emit(
         "room_updated",
         await enrichRoomPayload(res.room),
       );
