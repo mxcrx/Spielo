@@ -1474,6 +1474,18 @@ h3 {
   text-shadow: none;
 }
 
+.host-crown {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  margin-right: 6px;
+  vertical-align: middle;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23f1c40f'><path d='M2 4l3 6 7-6 7 6 3-6v16H2V4zm18 14v-4l-2.333 4.667L12 11.5l-5.667 7.167L4 14v4h16z'/></svg>");
+  background-size: contain;
+  background-repeat: no-repeat;
+  filter: drop-shadow(0 0 4px rgba(241, 196, 15, 0.6));
+}
+
 @media (max-width: 600px) {
   body {
     padding: 12px;

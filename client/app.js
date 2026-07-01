@@ -131,7 +131,7 @@ socket.on("room_created", (data) => {
   updateRoomSettingsUi(data.room.settings);
 
   if (data.room && data.room.players) {
-    renderPlayersList(data.room.players, null, {});
+    renderPlayersList(data.room.players, null, {}, data.room.host);
   }
 });
 
@@ -143,7 +143,7 @@ socket.on("room_updated", (room) => {
   toggleRoomHostUi(room);
   updateRoomSettingsUi(room.settings);
 
-  renderPlayersList(room.players, null, {});
+  renderPlayersList(room.players, null, {}, room.host);
 });
 
 socket.on("error_message", (msg) => {
@@ -549,7 +549,7 @@ function renderAvatarElement(element, avatarUrl, name) {
   element.textContent = safeUrl ? "" : initials;
 }
 
-function renderPlayersList(players, currentPlayer, hands = {}) {
+function renderPlayersList(players, currentPlayer, hands = {}, hostId = null) {
   const div = document.getElementById("players");
   div.innerHTML = "";
 
@@ -564,6 +564,16 @@ function renderPlayersList(players, currentPlayer, hands = {}) {
     const content = document.createElement("div");
     content.className = "player-content";
 
+    const isHost = hostId && p.userId === hostId;
+    if (isHost) {
+      const crown = document.createElement("span");
+      crown.className = "host-crown";
+      content.appendChild(crown);
+    }
+
+    const text = document.createElement("span");
+    text.className = "player-text";
+
     const hasHandInfo = hands && hands[p.userId];
     if (hasHandInfo) {
       let playerText = `${playerName} - ${hands[p.userId].length} Karten`;
@@ -574,10 +584,12 @@ function renderPlayersList(players, currentPlayer, hands = {}) {
       ) {
         playerText += " - UNO!";
       }
-      content.innerText = playerText;
+      text.innerText = playerText;
     } else {
-      content.innerText = playerName;
+      text.innerText = playerName;
     }
+
+    content.appendChild(text);
 
     if (p.userId === currentPlayer) {
       el.classList.add("active");
