@@ -1261,7 +1261,10 @@ function startClientCountdown(seconds) {
   const secondsSpan = document.getElementById("turnTimerSeconds");
 
   if (!seconds || seconds <= 0) {
+    if (clientTimerInterval) clearInterval(clientTimerInterval);
+    clientTimerInterval = null;
     if (display) display.hidden = true;
+    if (secondsSpan) secondsSpan.innerText = "-";
     return;
   }
 
