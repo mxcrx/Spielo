@@ -138,7 +138,6 @@ socket.on("room_created", (data) => {
 socket.on("room_updated", (room) => {
   currentRoom = room.id;
   document.getElementById("roomCodeDisplay").innerText = room.id;
-  showStatus("Im Warteraum");
   showScreen("roomScreen");
 
   toggleRoomHostUi(room);
@@ -198,7 +197,6 @@ socket.on("game_over", (data) => {
     hideWinner();
 
     showScreen("roomScreen");
-    showStatus("Im Warteraum");
 
     document.getElementById("hand").innerHTML = "";
     document.getElementById("topCard").innerHTML = "";
