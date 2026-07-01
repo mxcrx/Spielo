@@ -1182,7 +1182,7 @@ function readAllowedSelectValue(inputId, allowedValues, label) {
 
   const value = Number.parseInt(input.value, 10);
   if (!allowedValues.includes(value)) {
-    showStatus(`${label} ungültig.`, "red");
+    showStatus(`${label} ist ungültig.`, "red");
     return null;
   }
 
