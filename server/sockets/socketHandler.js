@@ -204,24 +204,24 @@ function startTurnTimer(io, roomId) {
   const timeMs = room.settings.timer * 1000;
 
   room.turnTimerId = setTimeout(async () => {
-    const currentPlayerId =
-      room.game.players[room.game.currentPlayerIndex].userId;
+    const timedOutIndex = room.game.currentPlayerIndex;
+    const timedOutPlayer = room.game.players[timedOutIndex];
+
+    const playerId = timedOutPlayer.userId;
 
     let result = processAction(room.game, {
       type: "DRAW_CARD",
-      playerId: currentPlayerId,
+      playerId: playerId,
     });
 
     if (result.game.turnState === "drawn") {
       result = processAction(result.game, {
         type: "END_TURN",
-        playerId: currentPlayerId,
+        playerId: playerId,
       });
 
-      const profile = await getProfile(currentPlayerId);
-      const displayName =
-        profile?.displayName ||
-        room.game.players[room.game.currentPlayerIndex].username;
+      const profile = await getProfile(playerId);
+      const displayName = profile?.displayName || timedOutPlayer.username;
 
       io.to(roomId).emit(
         "error_message",
