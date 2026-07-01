@@ -1095,11 +1095,17 @@ function registerSocket(io, socket) {
       socket.user.userId,
       settings,
     );
-    if (res.success)
+    if (res.success) {
       io.to(sanatizedRoomId).emit(
         "room_updated",
         await enrichRoomPayload(res.room),
       );
+      return;
+    }
+
+    if (res.message) {
+      socket.emit("error_message", res.message);
+    }
   });
 }
 module.exports = { registerSocket };

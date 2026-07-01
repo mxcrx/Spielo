@@ -1155,19 +1155,79 @@ function showLeaderboard() {
   socket.emit("get_leaderboard");
 }
 
+function readBoundedNumberInput(inputId, min, max, label) {
+  const input = document.getElementById(inputId);
+
+  if (!input) {
+    showStatus(`Eingabefeld "${label}" fehlt.`, "red");
+    return null;
+  }
+
+  const rawValue = input.valueAsNumber;
+  if (!Number.isFinite(rawValue)) {
+    showStatus(`${label} ist ungültig.`, "red");
+    return null;
+  }
+
+  const normalizedValue = Math.min(Math.max(rawValue, min), max);
+  input.value = String(normalizedValue);
+
+  return normalizedValue;
+}
+
+function readAllowedSelectValue(inputId, allowedValues, label) {
+  const input = document.getElementById(inputId);
+  if (!input) {
+    showStatus(`Auswahl "${label}" fehlt.`, "red");
+    return null;
+  }
+
+  const value = Number.parseInt(input.value, 10);
+  if (!allowedValues.includes(value)) {
+    showStatus(`${label} ungültig.`, "red");
+    return null;
+  }
+
+  return value;
+}
+
 function sendRoomSettings() {
+  const maxPlayers = readBoundedNumberInput(
+    "settingMaxPlayers",
+    2,
+    10,
+    "Maximale Spieler",
+  );
+  if (maxPlayers === null) return;
+
+  const startCards = readBoundedNumberInput(
+    "settingStartCards",
+    3,
+    12,
+    "Startkarten",
+  );
+  if (startCards === null) return;
+
+  const timer = readAllowedSelectValue(
+    "settingTimer",
+    [0, 15, 30, 60],
+    "Timer",
+  );
+  if (timer === null) return;
+
+  const decks = readAllowedSelectValue("settingDecks", [1, 2, 3], "Decks");
+  if (decks === null) return;
+
   const settings = {
     drawStacking: document.getElementById("settingDrawStacking").checked,
     wildOnWild: document.getElementById("settingWildOnWild").checked,
     jumpIn: document.getElementById("settingJumpIn").checked,
     sevenZero: document.getElementById("settingSevenZero").checked,
     forcePlay: document.getElementById("settingForcePlay").checked,
-    maxPlayers:
-      parseInt(document.getElementById("settingMaxPlayers").value, 10) || 2,
-    startCards:
-      parseInt(document.getElementById("settingStartCards").value, 10) || 7,
-    timer: parseInt(document.getElementById("settingTimer").value, 10) || 0,
-    decks: parseInt(document.getElementById("settingDecks").value, 10) || 1,
+    maxPlayers: maxPlayers,
+    startCards: startCards,
+    timer: timer,
+    decks: decks,
   };
 
   socket.emit("update_room_settings", {
