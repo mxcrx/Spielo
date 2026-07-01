@@ -1507,7 +1507,7 @@ h3 {
     width: 100%;
   }
 
-  .turn-indicator,
+  #turnIndicator,
   .turn-timer-display {
     font-size: 1rem;
   }
