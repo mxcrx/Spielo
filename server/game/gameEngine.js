@@ -61,7 +61,7 @@ function handlePlayCard(game, action) {
       return { game, error: "Du bist nicht am Zug" };
     }
 
-    const hand = game.hands[playerId];
+    const hand = game.hands[playerId] || [];
     const card = hand[cardIndex];
     const topCard = game.discardPile.at(-1);
 
