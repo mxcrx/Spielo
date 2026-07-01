@@ -10,6 +10,7 @@ const GAME_ACTION_TYPES = new Set([
   "CHALLENGE_UNO",
   "CALL_UNO",
   "CANCEL_COLOR_CHOICE",
+  "CHOOSE_SWAP_TARGET",
 ]);
 
 function isPlainObject(value) {

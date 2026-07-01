@@ -6,6 +6,7 @@ const {
   applyCardEffect,
   drawMultipleCards,
   checkWinner,
+  canPlay,
 } = require("./unoGame");
 const matchService = require("../matches/matchService");
 
@@ -13,23 +14,9 @@ function canPlayAnyCard(game, playerId) {
   const hand = game.hands[playerId] || [];
   const topCard = game.discardPile.at(-1);
 
-  return hand.some((card) => {
-    if (!topCard) return true;
-
-    if (topCard.value === "wild" || topCard.value === "+4") {
-      return (
-        card.value !== "wild" &&
-        card.value !== "+4" &&
-        card.color === game.currentColor
-      );
-    }
-
-    if (card.value === "wild" || card.value === "+4") return true;
-
-    if (game.currentColor && card.color === game.currentColor) return true;
-
-    return topCard.color === card.color || topCard.value === card.value;
-  });
+  return hand.some((card) =>
+    canPlay(topCard, card, game.currentColor, game.settings, game.pendingDraw),
+  );
 }
 
 function resolveAfterDraw(game, playerId) {
@@ -47,23 +34,73 @@ function getWinnerName(game, playerId) {
   return winner?.username || "unknown";
 }
 
+function handleZeroRule(game) {
+  const numPlayers = game.players.length;
+  if (numPlayers <= 1) return;
+
+  const newHands = {};
+  for (let i = 0; i < numPlayers; i++) {
+    const currentId = game.players[i].userId;
+    const nextIndex = (i + game.direction + numPlayers) % numPlayers;
+    const nextId = game.players[nextIndex].userId;
+    newHands[nextId] = game.hands[currentId];
+  }
+  game.hands = newHands;
+}
+
 function handlePlayCard(game, action) {
   const { playerId, payload = {} } = action;
   const cardIndex = payload.cardIndex;
 
-  if (game.players[game.currentPlayerIndex]?.userId !== playerId) {
-    return { game, error: "Du bist nicht am Zug" };
+  const isCurrentTurn =
+    game.players[game.currentPlayerIndex]?.userId === playerId;
+  let isJumpIn = false;
+
+  if (!isCurrentTurn) {
+    if (!game.settings.jumpIn) {
+      return { game, error: "Du bist nicht am Zug" };
+    }
+
+    const hand = game.hands[playerId] || [];
+    const card = hand[cardIndex];
+    const topCard = game.discardPile.at(-1);
+
+    if (
+      !card ||
+      !topCard ||
+      card.color !== topCard.color ||
+      card.value !== topCard.value
+    ) {
+      return { game, error: "Du kannst nur die gleiche Karte spielen!" };
+    }
+    isJumpIn = true;
   }
 
-  if (game.turnState === "played" || game.turnState === "choosing_color") {
+  if (
+    game.turnState === "played" ||
+    game.turnState === "choosing_color" ||
+    game.turnState === "choosing_swap_target"
+  ) {
     return { game, error: "Du hast diesen Zug bereits abgeschlossen" };
   }
 
   const topCard = game.discardPile.at(-1);
-  const result = playCard(game, playerId, cardIndex, payload.chosenColor);
+  const result = playCard(
+    game,
+    playerId,
+    cardIndex,
+    payload.chosenColor,
+    isJumpIn,
+  );
 
   if (!result.success) {
     return { game, error: result.message };
+  }
+
+  if (isJumpIn) {
+    const jumperIndex = game.players.findIndex((p) => p.userId === playerId);
+    game.currentPlayerIndex = jumperIndex;
+    game.turnState = "played";
   }
 
   if ((game.hands[playerId] || []).length !== 1) {
@@ -72,8 +109,10 @@ function handlePlayCard(game, action) {
 
   const card = result.playedCard;
   const needsColorChoice = card.value === "wild" || card.value === "+4";
+  const needsSwapTarget = game.settings.sevenZero && card.value === 7;
 
   game.turnState = needsColorChoice ? "choosing_color" : "played";
+  game.turnState = needsSwapTarget ? "choosing_swap_target" : game.turnState;
 
   const steps = applyCardEffect(game, card);
 
@@ -83,6 +122,10 @@ function handlePlayCard(game, action) {
 
   if (card.value === "+4") {
     game.pendingDraw += 4;
+  }
+
+  if (game.settings.sevenZero && card.value === 0) {
+    handleZeroRule(game);
   }
 
   const response = {
@@ -102,6 +145,8 @@ function handlePlayCard(game, action) {
     game.previousColor = game.currentColor;
     response.chooseColor = true;
     response.chooseColorReason = card.value;
+  } else if (needsSwapTarget) {
+    response.chooseSwapTarget = true;
   } else {
     response.currentPlayer = nextTurn(game, steps);
     game.turnState = "idle";
@@ -167,6 +212,24 @@ function handleEndTurn(game, action) {
     return { game, error: "Du musst eine Karte spielen oder ziehen" };
   }
 
+  if (game.settings.forcePlay && game.turnState === "drawn") {
+    const hand = game.hands[playerId];
+    const drawnCard = hand[hand.length - 1];
+    const topCard = game.discardPile.at(-1);
+
+    if (
+      canPlay(
+        topCard,
+        drawnCard,
+        game.currentColor,
+        game.settings,
+        game.pendingDraw,
+      )
+    ) {
+      return { game, error: "Du musst die gezogene Karte spielen" };
+    }
+  }
+
   game.turnState = "idle";
 
   return {
@@ -208,19 +271,21 @@ function handleChooseColor(game, action) {
   }
 
   if (game.pendingDraw > 0 && topCard?.value === "+4") {
-    const drawAmount = game.pendingDraw;
-    const nextPlayer = nextTurn(game);
+    if (!game.settings.drawStacking || !game.settings.wildOnWild) {
+      const drawAmount = game.pendingDraw;
+      const nextPlayer = nextTurn(game);
 
-    drawMultipleCards(game, nextPlayer, drawAmount);
-    game.pendingDraw = 0;
+      drawMultipleCards(game, nextPlayer, drawAmount);
+      game.pendingDraw = 0;
 
-    const currentPlayer = resolveAfterDraw(game, nextPlayer);
+      const currentPlayer = resolveAfterDraw(game, nextPlayer);
 
-    return {
-      game,
-      currentPlayer,
-      gameUpdated: true,
-    };
+      return {
+        game,
+        currentPlayer,
+        gameUpdated: true,
+      };
+    }
   }
 
   game.turnState = "idle";
@@ -320,6 +385,49 @@ function handleCancelColorChoice(game, action) {
   };
 }
 
+function handleChooseSwapTarget(game, action) {
+  const { playerId, payload = {} } = action;
+  const { targetId } = payload;
+
+  if (game.players[game.currentPlayerIndex]?.userId !== playerId) {
+    return { game, error: "Du bist nicht am Zug" };
+  }
+
+  if (game.turnState !== "choosing_swap_target") {
+    return { game, error: "Du bist nicht am Zug" };
+  }
+
+  if (!targetId || !game.hands[targetId]) {
+    return { game, error: "Ungültiger Tauschpartner" };
+  }
+
+  const myHand = [...game.hands[playerId]];
+  const targetHand = [...game.hands[targetId]];
+
+  game.hands[playerId] = targetHand;
+  game.hands[targetId] = myHand;
+
+  game.lastActionAt = Date.now();
+
+  if (checkWinner(game, playerId) || checkWinner(game, targetId)) {
+    const winnderId = checkWinner(game, playerId) ? playerId : targetId;
+    handleGameEnd(game, winnderId);
+    return {
+      game,
+      gameOver: true,
+      winner: getWinnerName(game, winnderId),
+    };
+  }
+
+  game.turnState = "idle";
+
+  return {
+    game,
+    currentPlayer: nextTurn(game),
+    gameUpdated: true,
+  };
+}
+
 function processAction(game, action = {}) {
   switch (action.type) {
     case "PLAY_CARD":
@@ -342,6 +450,9 @@ function processAction(game, action = {}) {
 
     case "CANCEL_COLOR_CHOICE":
       return handleCancelColorChoice(game, action);
+
+    case "CHOOSE_SWAP_TARGET":
+      return handleChooseSwapTarget(game, action);
 
     default:
       return { game, error: "Unknown action" };

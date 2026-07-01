@@ -22,6 +22,7 @@ let currentProfileData = null;
 let isFriendsMenuOpen = false;
 let currentFriends = [];
 let currentFriendRequests = [];
+let clientTimerInterval = null;
 
 function showScreen(screenId) {
   const screens = [
@@ -127,6 +128,7 @@ socket.on("room_created", (data) => {
   showScreen("roomScreen");
 
   toggleRoomHostUi(data.room);
+  updateRoomSettingsUi(data.room.settings);
 
   if (data.room && data.room.players) {
     renderPlayersList(data.room.players, null, {});
@@ -136,10 +138,10 @@ socket.on("room_created", (data) => {
 socket.on("room_updated", (room) => {
   currentRoom = room.id;
   document.getElementById("roomCodeDisplay").innerText = room.id;
-  showStatus("Im Warteraum");
   showScreen("roomScreen");
 
   toggleRoomHostUi(room);
+  updateRoomSettingsUi(room.settings);
 
   renderPlayersList(room.players, null, {});
 });
@@ -151,6 +153,7 @@ socket.on("error_message", (msg) => {
 socket.on("game_started", (game) => {
   currentRoom = game?.roomId || currentRoom;
   currentGame = game?.game || game;
+  const timerSettings = currentGame.settings?.timer || 0;
   hideWinner();
   showScreen("gameScreen");
   showStatus("Spiel gestartet");
@@ -164,11 +167,13 @@ socket.on("game_started", (game) => {
   renderPlayersList(currentGame.players, currentPlayerId, currentGame.hands);
   updateTurnIndicator(currentPlayerId);
   updateUnoButtons();
+  startClientCountdown(timerSettings);
 });
 
 socket.on("game_updated", (data) => {
   currentGame = data.game;
   currentRoom = data.roomId || currentRoom;
+  const timerSettings = currentGame.settings?.timer || 0;
   showScreen("gameScreen");
 
   currentPlayerId = data.currentPlayer || currentPlayerId;
@@ -178,11 +183,13 @@ socket.on("game_updated", (data) => {
   renderPlayersList(currentGame.players, currentPlayerId, currentGame.hands);
   updateTurnIndicator(currentPlayerId);
   updateUnoButtons();
+  startClientCountdown(timerSettings);
   if (data.sixSeven) renderSixSevenEffect();
 });
 
 socket.on("game_over", (data) => {
   document.getElementById("colorPicker").style.display = "none";
+  stopClientCountdown();
   showWinner(data.winner);
 
   showStatus("Spiel beendet");
@@ -190,7 +197,6 @@ socket.on("game_over", (data) => {
     hideWinner();
 
     showScreen("roomScreen");
-    showStatus("Im Warteraum");
 
     document.getElementById("hand").innerHTML = "";
     document.getElementById("topCard").innerHTML = "";
@@ -324,6 +330,24 @@ socket.on("leaderboard_data", (data) => {
   showScreen("leaderboardScreen");
 });
 
+socket.on("choose_swap_target", (data) => {
+  const picker = document.getElementById("playerPicker");
+  const optionsContainer = document.getElementById("playerOptions");
+
+  optionsContainer.innerHTML = "";
+
+  data.opponents.forEach((opponent) => {
+    const btn = document.createElement("button");
+    btn.className = "player-btn";
+    btn.innerHTML = `<span>${escapeHtml(opponent.name)}</span> <span> ${opponent.cardCount} Karten</span>`;
+    btn.onclick = () => selectSwapTarget(opponent.id);
+
+    optionsContainer.appendChild(btn);
+  });
+
+  picker.style.display = "flex";
+});
+
 function createRoom() {
   socket.emit("create_room");
 }
@@ -368,7 +392,7 @@ function endTurn() {
 }
 
 function playCard(cardIndex) {
-  sendGameAction("PLAY_CARD", { cardIndex });
+  sendGameAction("PLAY_CARD", { cardIndex }, { allowWhenNotCurrent: true });
 }
 
 function showStatus(msg, color = "white", duration = 1500) {
@@ -617,19 +641,36 @@ function toggleRoomHostUi(room) {
   const startButton = document.getElementById("startGameButton");
   const startHint = document.getElementById("roomStartHint");
   const friendButton = document.getElementById("friendInviteButton");
+  const fields = [
+    "settingDrawStacking",
+    "settingWildOnWild",
+    "settingJumpIn",
+    "settingSevenZero",
+    "settingForcePlay",
+    "settingMaxPlayers",
+    "settingStartCards",
+    "settingTimer",
+    "settingDecks",
+  ];
 
   if (startButton) startButton.hidden = !isHost;
   if (startHint) startHint.hidden = !isHost;
   if (friendButton) friendButton.hidden = !isHost;
+
+  fields.forEach((id) => {
+    const el = document.getElementById(id);
+    if (el) el.disabled = !isHost;
+  });
 }
 
 function updateTurnIndicator(currentPlayerId) {
+  const container = document.getElementById("turnContainer");
   const indicator = document.getElementById("turnIndicator");
   if (!indicator || !currentGame) return;
 
   if (currentPlayerId === myUserId) {
     indicator.textContent = "Du bist am Zug!";
-    indicator.className = "turn-indicator my-turn";
+    container.className = "turn-container my-turn";
   } else {
     const player = currentGame.players.find(
       (p) => p.userId === currentPlayerId,
@@ -637,7 +678,7 @@ function updateTurnIndicator(currentPlayerId) {
     const playerName =
       player?.displayName || player?.username || "Ein Anderer Spieler";
     indicator.textContent = `${playerName} ist am Zug...`;
-    indicator.className = "turn-indicator other-turn";
+    container.className = "turn-container other-turn";
   }
 }
 
@@ -1110,6 +1151,149 @@ function acceptInvite(roomId, btnElement) {
 
 function showLeaderboard() {
   socket.emit("get_leaderboard");
+}
+
+function readBoundedNumberInput(inputId, min, max, label) {
+  const input = document.getElementById(inputId);
+
+  if (!input) {
+    showStatus(`Eingabefeld "${label}" fehlt.`, "red");
+    return null;
+  }
+
+  const rawValue = input.valueAsNumber;
+  if (!Number.isFinite(rawValue)) {
+    showStatus(`${label} ist ungültig.`, "red");
+    return null;
+  }
+
+  const normalizedValue = Math.min(Math.max(rawValue, min), max);
+  input.value = String(normalizedValue);
+
+  return normalizedValue;
+}
+
+function readAllowedSelectValue(inputId, allowedValues, label) {
+  const input = document.getElementById(inputId);
+  if (!input) {
+    showStatus(`Auswahl "${label}" fehlt.`, "red");
+    return null;
+  }
+
+  const value = Number.parseInt(input.value, 10);
+  if (!allowedValues.includes(value)) {
+    showStatus(`${label} ist ungültig.`, "red");
+    return null;
+  }
+
+  return value;
+}
+
+function sendRoomSettings() {
+  const maxPlayers = readBoundedNumberInput(
+    "settingMaxPlayers",
+    2,
+    10,
+    "Maximale Spieler",
+  );
+  if (maxPlayers === null) return;
+
+  const startCards = readBoundedNumberInput(
+    "settingStartCards",
+    3,
+    12,
+    "Startkarten",
+  );
+  if (startCards === null) return;
+
+  const timer = readAllowedSelectValue(
+    "settingTimer",
+    [0, 15, 30, 60],
+    "Timer",
+  );
+  if (timer === null) return;
+
+  const decks = readAllowedSelectValue("settingDecks", [1, 2, 3], "Decks");
+  if (decks === null) return;
+
+  const settings = {
+    drawStacking: document.getElementById("settingDrawStacking").checked,
+    wildOnWild: document.getElementById("settingWildOnWild").checked,
+    jumpIn: document.getElementById("settingJumpIn").checked,
+    sevenZero: document.getElementById("settingSevenZero").checked,
+    forcePlay: document.getElementById("settingForcePlay").checked,
+    maxPlayers: maxPlayers,
+    startCards: startCards,
+    timer: timer,
+    decks: decks,
+  };
+
+  socket.emit("update_room_settings", {
+    roomId: currentRoom,
+    settings,
+  });
+}
+
+function updateRoomSettingsUi(settings) {
+  if (!settings) return;
+  document.getElementById("settingDrawStacking").checked =
+    settings.drawStacking;
+
+  document.getElementById("settingJumpIn").checked = settings.jumpIn;
+
+  document.getElementById("settingWildOnWild").checked = settings.wildOnWild;
+
+  document.getElementById("settingSevenZero").checked = settings.sevenZero;
+
+  document.getElementById("settingForcePlay").checked = settings.forcePlay;
+
+  document.getElementById("settingMaxPlayers").value = settings.maxPlayers;
+
+  document.getElementById("settingStartCards").value = settings.startCards;
+
+  document.getElementById("settingTimer").value = settings.timer;
+
+  document.getElementById("settingDecks").value = settings.decks;
+}
+
+function startClientCountdown(seconds) {
+  const display = document.getElementById("turnTimerDisplay");
+  const secondsSpan = document.getElementById("turnTimerSeconds");
+
+  if (!seconds || seconds <= 0) {
+    if (clientTimerInterval) clearInterval(clientTimerInterval);
+    clientTimerInterval = null;
+    if (display) display.hidden = true;
+    if (secondsSpan) secondsSpan.innerText = "-";
+    return;
+  }
+
+  if (display) display.hidden = false;
+
+  let timeLeft = seconds;
+  secondsSpan.innerText = timeLeft;
+
+  if (clientTimerInterval) clearInterval(clientTimerInterval);
+
+  clientTimerInterval = setInterval(() => {
+    timeLeft--;
+    if (timeLeft < 0) {
+      clearInterval(clientTimerInterval);
+      timeLeft = 0;
+    }
+    secondsSpan.innerText = timeLeft;
+  }, 1000);
+}
+
+function stopClientCountdown() {
+  if (clientTimerInterval) clearInterval(clientTimerInterval);
+  const display = document.getElementById("turnTimerDisplay");
+  if (display) display.hidden = true;
+}
+
+function selectSwapTarget(targetId) {
+  document.getElementById("playerPicker").style.display = "none";
+  sendGameAction("CHOOSE_SWAP_TARGET", { targetId });
 }
 
 document.addEventListener("DOMContentLoaded", () => {

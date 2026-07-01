@@ -1,9 +1,16 @@
-function createUnoGame(players) {
+function createUnoGame(players, settings) {
   return {
     players,
+    settings: settings || {
+      drawStacking: true,
+      jumpIn: false,
+      sevenZero: false,
+      forcePlay: false,
+      decks: 1,
+    },
     hands: {},
     unoDeclared: {},
-    deck: createDeck(),
+    deck: createDeck(settings?.decks || 1),
     discardPile: [],
     currentPlayerIndex: 0,
     direction: 1,
@@ -14,7 +21,7 @@ function createUnoGame(players) {
   };
 }
 
-function createDeck() {
+function createDeck(decksAmount = 1) {
   const colors = ["red", "green", "blue", "yellow"];
   const deck = [];
 
@@ -40,7 +47,12 @@ function createDeck() {
     deck.push({ color: null, value: "+4" });
   }
 
-  return shuffleDeck(deck);
+  let fullDeck = [];
+  for (let i = 0; i < decksAmount; i++) {
+    fullDeck = fullDeck.concat(deck);
+  }
+
+  return shuffleDeck(fullDeck);
 }
 
 function startGame(game) {
@@ -50,7 +62,7 @@ function startGame(game) {
   game.currentPlayerIndex = Math.floor(Math.random() * game.players.length);
 
   for (const p of game.players) {
-    game.hands[p.userId] = game.deck.splice(0, 5);
+    game.hands[p.userId] = game.deck.splice(0, game.settings?.startCards || 7);
   }
 
   const firstCard = game.deck.pop();
@@ -109,13 +121,26 @@ function getCurrentPlayer(game) {
   return game.players[game.currentPlayerIndex].userId;
 }
 
-function canPlay(top, card, currentColor) {
+function canPlay(top, card, currentColor, settings, pendingDraw = 0) {
+  if (pendingDraw > 0 && settings?.drawStacking) {
+    if (top.value === "+2") {
+      if (card.value === "+2") return true;
+      if (card.value === "+4" && (settings?.wildOnWild || false)) return true;
+      return false;
+    }
+    if (top.value === "+4") {
+      return card.value === "+4" && (settings?.wildOnWild || false);
+    }
+    return false;
+  }
+
+  const allowWildOnWild = settings?.wildOnWild || false;
   if (top && (top.value === "wild" || top.value === "+4")) {
-    return (
-      card.value !== "wild" &&
-      card.value !== "+4" &&
-      card.color === currentColor
-    );
+    if (card.value === "wild" || card.value === "+4") {
+      return allowWildOnWild;
+    }
+
+    return card.color === currentColor;
   }
 
   if (card.value === "wild" || card.value === "+4") return true;
@@ -134,7 +159,7 @@ function canPlay(top, card, currentColor) {
   return top.color === card.color || top.value === card.value;
 }
 
-function playCard(game, player, index, chosenColor) {
+function playCard(game, player, index, chosenColor, isJumpIn = false) {
   const userId = getPlayerUserId(player);
   const hand = game.hands[userId];
   if (!hand) return { success: false, message: "Spieler nicht im Spiel" };
@@ -145,14 +170,49 @@ function playCard(game, player, index, chosenColor) {
 
   const top = game.discardPile.at(-1);
 
-  if (!canPlay(top, card, game.currentColor))
-    return { success: false, message: "Ungültig" };
+  if (game.pendingDraw > 0) {
+    if (!game.settings.drawStacking) {
+      return { success: false, message: "Du musst die Karten ziehen." };
+    }
 
-  if (game.pendingDraw > 0 && card.value !== "+2")
-    return {
-      success: false,
-      message: "Du musst eine +2-Karte spielen oder ziehen",
-    };
+    if (top && top.value === "+2") {
+      if (
+        card.value !== "+2" &&
+        card.value !== "+4" &&
+        game.settings.wildOnWild
+      ) {
+        return {
+          success: false,
+          message: "Du musst eine +2 oder +4 spielen, oder die Karten ziehen.",
+        };
+      } else if (card.value !== "+2" && !game.settings.wildOnWild) {
+        return {
+          success: false,
+          message: "Du musst eine +2 spielen oder die Karten ziehen.",
+        };
+      }
+    } else if (top && top.value === "+4") {
+      if (card.value !== "+4") {
+        return {
+          success: false,
+          message: "Du musst eine +4 spielen oder die Karten ziehen.",
+        };
+      }
+    }
+  }
+
+  if (isJumpIn) {
+    if (card.color !== top.color || card.value !== top.value) {
+      return {
+        success: false,
+        message: "Du kannst nur die gleiche Karte spielen!",
+      };
+    }
+  } else if (
+    !canPlay(top, card, game.currentColor, game.settings, game.pendingDraw)
+  ) {
+    return { success: false, message: "Du kannst diese Karte nicht spielen" };
+  }
 
   hand.splice(index, 1);
 
@@ -184,10 +244,6 @@ function applyCardEffect(game, card) {
     default:
       return 1;
   }
-}
-
-function isDrawStackCard(card) {
-  return card.value === "+2";
 }
 
 function checkWinner(game, player) {
@@ -228,6 +284,6 @@ module.exports = {
   getCurrentPlayer,
   playCard,
   applyCardEffect,
-  isDrawStackCard,
   checkWinner,
+  canPlay,
 };
