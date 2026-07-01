@@ -142,6 +142,7 @@ async function enrichRoomPayload(room) {
 
   return {
     ...room,
+    turnTimerId: undefined,
     players: await enrichPlayersWithDisplayNames(room.players),
     game: room.game
       ? {
